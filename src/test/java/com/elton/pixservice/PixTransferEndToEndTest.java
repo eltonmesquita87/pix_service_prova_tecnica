@@ -21,15 +21,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/**
- * End-to-End test simulating a complete Pix transfer flow:
- * 1. Create two wallets
- * 2. Register Pix key for destination wallet
- * 3. Deposit money into source wallet
- * 4. Perform Pix transfer (wallet debited immediately)
- * 5. Process webhook to confirm transfer (wallet credited)
- * 6. Verify final balances
- */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")

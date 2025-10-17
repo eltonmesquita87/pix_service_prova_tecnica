@@ -82,23 +82,10 @@ A API possui documentação interativa completa usando **Swagger/OpenAPI**:
 http://localhost:8080/swagger-ui/
 ```
 
-Interface visual onde você pode:
-- Visualizar todos os endpoints disponíveis
-- Ver exemplos de requisições e respostas
-- Testar os endpoints diretamente pelo navegador
-- Ver códigos HTTP e descrições detalhadas
-
 ### OpenAPI JSON (Especificação)
 ```
 http://localhost:8080/v2/api-docs
 ```
-
-Especificação OpenAPI em formato JSON para:
-- Importar em Postman, Insomnia ou outras ferramentas
-- Gerar clientes automaticamente em várias linguagens
-- Integração com ferramentas de teste
-
-📖 Para mais detalhes sobre a documentação Swagger, consulte: [SWAGGER_DOCUMENTATION.md](./SWAGGER_DOCUMENTATION.md)
 
 ## Endpoints da API
 
