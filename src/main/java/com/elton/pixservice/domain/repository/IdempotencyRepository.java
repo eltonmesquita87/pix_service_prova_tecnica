@@ -7,6 +7,5 @@ import java.util.Optional;
  */
 public interface IdempotencyRepository {
     void saveIdempotencyKey(String scope, String key, String response);
-    Optional<String> findResponse(String scope, String key);
     boolean exists(String scope, String key);
 }

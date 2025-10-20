@@ -2,6 +2,8 @@ package com.elton.pixservice.usecase;
 
 import com.elton.pixservice.domain.entity.LedgerEntry;
 import com.elton.pixservice.domain.entity.Wallet;
+import com.elton.pixservice.domain.exception.SaldoInsuficienteException;
+import com.elton.pixservice.domain.exception.WalletNaoEncontradaException;
 import com.elton.pixservice.domain.repository.LedgerEntryRepository;
 import com.elton.pixservice.domain.repository.WalletRepository;
 import com.elton.pixservice.domain.valueobject.LedgerEntryType;
@@ -83,8 +85,8 @@ class WithdrawUseCaseTest {
         when(walletRepository.findByIdWithLock(walletId)).thenReturn(Optional.empty());
 
         // When & Then
-        IllegalArgumentException exception = assertThrows(
-            IllegalArgumentException.class,
+        WalletNaoEncontradaException exception = assertThrows(
+            WalletNaoEncontradaException.class,
             () -> withdrawUseCase.execute(walletId, amount)
         );
         assertTrue(exception.getMessage().contains("Wallet not found"));
@@ -104,11 +106,11 @@ class WithdrawUseCaseTest {
         when(walletRepository.findByIdWithLock(walletId)).thenReturn(Optional.of(wallet));
 
         // When & Then
-        IllegalStateException exception = assertThrows(
-            IllegalStateException.class,
+        SaldoInsuficienteException exception = assertThrows(
+            SaldoInsuficienteException.class,
             () -> withdrawUseCase.execute(walletId, amount)
         );
-        assertEquals("Insufficient balance", exception.getMessage());
+        assertTrue(exception.getMessage().contains("Insufficient balance"));
 
         verify(walletRepository).findByIdWithLock(walletId);
         verify(walletRepository, never()).save(any());

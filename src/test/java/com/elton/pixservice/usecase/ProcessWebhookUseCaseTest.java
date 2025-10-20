@@ -2,6 +2,7 @@ package com.elton.pixservice.usecase;
 
 import com.elton.pixservice.domain.entity.PixTransfer;
 import com.elton.pixservice.domain.entity.Wallet;
+import com.elton.pixservice.domain.exception.TipoEventoDesconhecidoException;
 import com.elton.pixservice.domain.repository.*;
 import com.elton.pixservice.domain.valueobject.Money;
 import com.elton.pixservice.domain.valueobject.TransferStatus;
@@ -191,8 +192,8 @@ class ProcessWebhookUseCaseTest {
                 .thenReturn(Optional.of(pendingTransfer));
 
         // When & Then
-        IllegalArgumentException exception = assertThrows(
-            IllegalArgumentException.class,
+        TipoEventoDesconhecidoException exception = assertThrows(
+            TipoEventoDesconhecidoException.class,
             () -> processWebhookUseCase.execute(eventId, endToEndId, eventType)
         );
         assertTrue(exception.getMessage().contains("Unknown event type"));

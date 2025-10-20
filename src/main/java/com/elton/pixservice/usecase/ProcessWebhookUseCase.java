@@ -3,6 +3,8 @@ package com.elton.pixservice.usecase;
 import com.elton.pixservice.domain.entity.LedgerEntry;
 import com.elton.pixservice.domain.entity.PixTransfer;
 import com.elton.pixservice.domain.entity.Wallet;
+import com.elton.pixservice.domain.exception.TipoEventoDesconhecidoException;
+import com.elton.pixservice.domain.exception.WalletNaoEncontradaException;
 import com.elton.pixservice.domain.repository.*;
 import com.elton.pixservice.domain.valueobject.LedgerEntryType;
 import com.elton.pixservice.domain.valueobject.Money;
@@ -43,7 +45,7 @@ public class ProcessWebhookUseCase {
                 processRejection(transfer);
                 break;
             default:
-                throw new IllegalArgumentException("Unknown event type: " + eventType);
+                throw new TipoEventoDesconhecidoException(eventType);
         }
 
         // Mark event as processed
@@ -64,7 +66,7 @@ public class ProcessWebhookUseCase {
 
         // Credit destination wallet
         Wallet destinationWallet = walletRepository.findByIdWithLock(transfer.getToWalletId())
-                .orElseThrow(() -> new IllegalArgumentException("Destination wallet not found"));
+                .orElseThrow(() -> new WalletNaoEncontradaException(transfer.getToWalletId()));
 
         destinationWallet.deposit(transfer.getAmount());
         walletRepository.save(destinationWallet);
@@ -94,7 +96,7 @@ public class ProcessWebhookUseCase {
 
         // Refund source wallet
         Wallet sourceWallet = walletRepository.findByIdWithLock(transfer.getFromWalletId())
-                .orElseThrow(() -> new IllegalArgumentException("Source wallet not found"));
+                .orElseThrow(() -> new WalletNaoEncontradaException(transfer.getFromWalletId()));
 
         sourceWallet.deposit(transfer.getAmount());
         walletRepository.save(sourceWallet);

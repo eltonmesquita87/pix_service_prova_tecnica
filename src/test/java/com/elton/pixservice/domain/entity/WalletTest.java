@@ -1,5 +1,7 @@
 package com.elton.pixservice.domain.entity;
 
+import com.elton.pixservice.domain.exception.SaldoInsuficienteException;
+import com.elton.pixservice.domain.exception.ValorInvalidoException;
 import com.elton.pixservice.domain.valueobject.Money;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,7 +38,7 @@ class WalletTest {
                 .build();
 
         // When & Then
-        assertThrows(IllegalArgumentException.class, () -> wallet.deposit(Money.zero()));
+        assertThrows(ValorInvalidoException.class, () -> wallet.deposit(Money.zero()));
     }
 
     @Test
@@ -48,7 +50,7 @@ class WalletTest {
                 .build();
 
         // When & Then
-        assertThrows(IllegalArgumentException.class, () -> wallet.deposit(Money.of(-10.00)));
+        assertThrows(ValorInvalidoException.class, () -> wallet.deposit(Money.of(-10.00)));
     }
 
     @Test
@@ -78,11 +80,11 @@ class WalletTest {
                 .build();
 
         // When & Then
-        IllegalStateException exception = assertThrows(
-            IllegalStateException.class,
+        SaldoInsuficienteException exception = assertThrows(
+            SaldoInsuficienteException.class,
             () -> wallet.withdraw(Money.of(150.00))
         );
-        assertEquals("Insufficient balance", exception.getMessage());
+        assertTrue(exception.getMessage().contains("Insufficient balance"));
     }
 
     @Test
@@ -94,7 +96,7 @@ class WalletTest {
                 .build();
 
         // When & Then
-        assertThrows(IllegalArgumentException.class, () -> wallet.withdraw(Money.zero()));
+        assertThrows(ValorInvalidoException.class, () -> wallet.withdraw(Money.zero()));
     }
 
     @Test
@@ -106,7 +108,7 @@ class WalletTest {
                 .build();
 
         // When & Then
-        assertThrows(IllegalArgumentException.class, () -> wallet.withdraw(Money.of(-10.00)));
+        assertThrows(ValorInvalidoException.class, () -> wallet.withdraw(Money.of(-10.00)));
     }
 
     @Test

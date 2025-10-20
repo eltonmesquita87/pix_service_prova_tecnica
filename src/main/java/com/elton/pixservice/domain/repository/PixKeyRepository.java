@@ -11,6 +11,5 @@ import java.util.Optional;
 public interface PixKeyRepository {
     PixKey save(PixKey pixKey);
     Optional<PixKey> findByKeyValue(String keyValue);
-    List<PixKey> findByWalletId(Long walletId);
     boolean existsByKeyValue(String keyValue);
 }

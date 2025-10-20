@@ -1,0 +1,379 @@
+# =======================================================================================
+# Docker Compose - Ambiente Distribuído com Load Balancer
+# =======================================================================================
+# Arquitetura:
+# - 2+ réplicas do Pix Service (escalonamento horizontal)
+# - NGINX como load balancer (round-robin)
+# - PostgreSQL como banco de dados central
+# - Redes segregadas (frontend + backend)
+# - Health checks e auto-restart configurados
+# =======================================================================================
+
+version: '3.9'
+
+services:
+  # =======================================================================================
+  # PostgreSQL - Banco de Dados Central
+  # =======================================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: pix-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: pixdb
+      POSTGRES_USER: pixuser
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pixpass}
+      # Otimizações de performance
+      POSTGRES_SHARED_BUFFERS: 256MB
+      POSTGRES_EFFECTIVE_CACHE_SIZE: 1GB
+      POSTGRES_MAINTENANCE_WORK_MEM: 64MB
+      POSTGRES_CHECKPOINT_COMPLETION_TARGET: 0.9
+      POSTGRES_WAL_BUFFERS: 16MB
+      POSTGRES_RANDOM_PAGE_COST: 1.1
+      POSTGRES_EFFECTIVE_IO_CONCURRENCY: 200
+      POSTGRES_WORK_MEM: 4MB
+      POSTGRES_MIN_WAL_SIZE: 1GB
+      POSTGRES_MAX_WAL_SIZE: 4GB
+      # Connection pooling
+      POSTGRES_MAX_CONNECTIONS: 200
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pixuser -d pixdb"]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # =======================================================================================
+  # Pix Service - Aplicação Spring Boot (Múltiplas Réplicas)
+  # =======================================================================================
+  pix-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pix-service:latest
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Spring Profile
+      SPRING_PROFILES_ACTIVE: prod
+
+      # Database
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/pixdb
+      SPRING_DATASOURCE_USERNAME: pixuser
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-pixpass}
+
+      # Connection Pool (HikariCP) - Ajustado para múltiplas réplicas
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 20
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: 5
+      SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT: 30000
+      SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT: 600000
+      SPRING_DATASOURCE_HIKARI_MAX_LIFETIME: 1800000
+
+      # Flyway
+      SPRING_FLYWAY_ENABLED: true
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: true
+
+      # JPA/Hibernate
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_JPA_SHOW_SQL: false
+      SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: false
+
+      # Logging
+      LOGGING_LEVEL_ROOT: INFO
+      LOGGING_LEVEL_COM_ELTON: INFO
+      LOGGING_LEVEL_ORG_HIBERNATE: WARN
+
+      # Actuator (exposto apenas internamente)
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,metrics,prometheus,info
+      MANAGEMENT_ENDPOINTS_WEB_BASE_PATH: /actuator
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: when-authorized
+      MANAGEMENT_SERVER_PORT: 8081
+
+      # Server
+      SERVER_PORT: 8080
+      SERVER_SHUTDOWN: graceful
+      SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE: 30s
+
+      # JVM Options (sobrescreve Dockerfile se necessário)
+      JAVA_OPTS: >-
+        -XX:+UseG1GC
+        -XX:+UseStringDeduplication
+        -XX:+TieredCompilation
+        -XX:InitialRAMPercentage=70.0
+        -XX:MaxRAMPercentage=75.0
+        -XX:+ExitOnOutOfMemoryError
+        -XX:+UseContainerSupport
+        -Djava.security.egd=file:/dev/./urandom
+
+    # IMPORTANTE: expose (não ports) para não expor diretamente ao host
+    # Apenas o load balancer terá acesso
+    expose:
+      - "8080"  # Aplicação
+      - "8081"  # Actuator/Metrics
+
+    networks:
+      - backend
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+
+    deploy:
+      # Múltiplas réplicas para alta disponibilidade
+      replicas: 2
+
+      # Política de restart
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+      # Recursos
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+      # Estratégia de atualização (rolling update)
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        monitor: 60s
+        order: start-first
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service,replica"
+
+  # =======================================================================================
+  # NGINX - Load Balancer
+  # =======================================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: pix-nginx
+    restart: always
+    depends_on:
+      - pix-service
+    ports:
+      - "8080:80"      # Aplicação (HTTP)
+      - "8081:8081"    # Metrics/Actuator (agregado)
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - nginx_logs:/var/log/nginx
+    networks:
+      - frontend
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.25'
+          memory: 64M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # =======================================================================================
+  # PgAdmin - Administração de Banco de Dados (OPCIONAL)
+  # =======================================================================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pix-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - backend
+    profiles:
+      - admin
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  # =======================================================================================
+  # Prometheus - Coleta de Métricas Agregadas (OPCIONAL)
+  # =======================================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: pix-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      - pix-service
+    networks:
+      - backend
+    profiles:
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # =======================================================================================
+  # Grafana - Visualização de Métricas (OPCIONAL)
+  # =======================================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: pix-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_SERVER_ROOT_URL: http://localhost:3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    networks:
+      - backend
+      - frontend
+    profiles:
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+# =======================================================================================
+# Networks - Segregação de Redes
+# =======================================================================================
+networks:
+  # Frontend: Acesso externo (load balancer, grafana)
+  frontend:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+  # Backend: Rede interna (aplicação, banco, métricas)
+  backend:
+    driver: bridge
+    internal: false  # Manter false para permitir download de dependências no build
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24
+
+# =======================================================================================
+# Volumes - Persistência de Dados
+# =======================================================================================
+volumes:
+  postgres_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  nginx_logs:
+    driver: local
+
+# =======================================================================================
+# INSTRUÇÕES DE USO
+# =======================================================================================
+# Build e deploy distribuído:
+#   docker-compose -f docker-compose.distributed.yml build
+#   docker-compose -f docker-compose.distributed.yml up -d --scale pix-service=2
+#
+# Escalar para 3 réplicas:
+#   docker-compose -f docker-compose.distributed.yml up -d --scale pix-service=3
+#
+# Escalar para 5 réplicas:
+#   docker-compose -f docker-compose.distributed.yml up -d --scale pix-service=5
+#
+# Start com admin:
+#   docker-compose -f docker-compose.distributed.yml --profile admin up -d
+#
+# Start com monitoring:
+#   docker-compose -f docker-compose.distributed.yml --profile monitoring up -d
+#
+# Logs de todas as réplicas:
+#   docker-compose -f docker-compose.distributed.yml logs -f pix-service
+#
+# Logs do load balancer:
+#   docker-compose -f docker-compose.distributed.yml logs -f nginx
+#
+# Verificar réplicas ativas:
+#   docker-compose -f docker-compose.distributed.yml ps pix-service
+#
+# Rolling restart (zero downtime):
+#   docker-compose -f docker-compose.distributed.yml up -d --no-deps --scale pix-service=3 --no-recreate pix-service
+#
+# Stop:
+#   docker-compose -f docker-compose.distributed.yml down
+#
+# Stop e remove volumes:
+#   docker-compose -f docker-compose.distributed.yml down -v
+#
+# Health check via load balancer:
+#   curl http://localhost:8080/actuator/health
+#
+# Metrics agregadas via load balancer:
+#   curl http://localhost:8081/actuator/prometheus
+#
+# Testar balanceamento:
+#   for i in {1..10}; do curl http://localhost:8080/actuator/info | jq -r '.app.instance'; done
+# =======================================================================================

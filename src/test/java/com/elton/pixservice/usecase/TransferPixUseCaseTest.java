@@ -3,6 +3,10 @@ package com.elton.pixservice.usecase;
 import com.elton.pixservice.domain.entity.PixKey;
 import com.elton.pixservice.domain.entity.PixTransfer;
 import com.elton.pixservice.domain.entity.Wallet;
+import com.elton.pixservice.domain.exception.RequisicaoDuplicadaException;
+import com.elton.pixservice.domain.exception.SaldoInsuficienteException;
+import com.elton.pixservice.domain.exception.TransferenciaInvalidaException;
+import com.elton.pixservice.domain.exception.WalletNaoEncontradaException;
 import com.elton.pixservice.domain.repository.*;
 import com.elton.pixservice.domain.valueobject.Money;
 import com.elton.pixservice.domain.valueobject.PixKeyType;
@@ -122,7 +126,7 @@ class TransferPixUseCaseTest {
         when(idempotencyRepository.exists("pix_transfer", idempotencyKey)).thenReturn(true);
 
         // When & Then
-        assertThrows(IllegalStateException.class, () ->
+        assertThrows(RequisicaoDuplicadaException.class, () ->
             transferPixUseCase.execute(fromWalletId, pixKeyValue, amount, idempotencyKey)
         );
 
@@ -144,8 +148,8 @@ class TransferPixUseCaseTest {
         when(pixKeyRepository.findByKeyValue(pixKeyValue)).thenReturn(Optional.empty());
 
         // When & Then
-        IllegalArgumentException exception = assertThrows(
-            IllegalArgumentException.class,
+        WalletNaoEncontradaException exception = assertThrows(
+            WalletNaoEncontradaException.class,
             () -> transferPixUseCase.execute(fromWalletId, pixKeyValue, amount, idempotencyKey)
         );
         assertTrue(exception.getMessage().contains("Pix key not found"));
@@ -172,8 +176,8 @@ class TransferPixUseCaseTest {
         when(pixKeyRepository.findByKeyValue(pixKeyValue)).thenReturn(Optional.of(sameWalletPixKey));
 
         // When & Then
-        IllegalArgumentException exception = assertThrows(
-            IllegalArgumentException.class,
+        TransferenciaInvalidaException exception = assertThrows(
+            TransferenciaInvalidaException.class,
             () -> transferPixUseCase.execute(fromWalletId, pixKeyValue, amount, idempotencyKey)
         );
         assertTrue(exception.getMessage().contains("Cannot transfer to the same wallet"));
@@ -193,8 +197,8 @@ class TransferPixUseCaseTest {
         when(walletRepository.findByIdWithLock(fromWalletId)).thenReturn(Optional.empty());
 
         // When & Then
-        IllegalArgumentException exception = assertThrows(
-            IllegalArgumentException.class,
+        WalletNaoEncontradaException exception = assertThrows(
+            WalletNaoEncontradaException.class,
             () -> transferPixUseCase.execute(fromWalletId, pixKeyValue, amount, idempotencyKey)
         );
         assertTrue(exception.getMessage().contains("Source wallet not found"));
@@ -214,8 +218,8 @@ class TransferPixUseCaseTest {
         when(walletRepository.findByIdWithLock(fromWalletId)).thenReturn(Optional.of(sourceWallet));
 
         // When & Then
-        IllegalStateException exception = assertThrows(
-            IllegalStateException.class,
+        SaldoInsuficienteException exception = assertThrows(
+            SaldoInsuficienteException.class,
             () -> transferPixUseCase.execute(fromWalletId, pixKeyValue, amount, idempotencyKey)
         );
         assertTrue(exception.getMessage().contains("Insufficient balance"));
@@ -239,8 +243,8 @@ class TransferPixUseCaseTest {
         when(walletRepository.existsById(2L)).thenReturn(false);
 
         // When & Then
-        IllegalArgumentException exception = assertThrows(
-            IllegalArgumentException.class,
+        WalletNaoEncontradaException exception = assertThrows(
+            WalletNaoEncontradaException.class,
             () -> transferPixUseCase.execute(fromWalletId, pixKeyValue, amount, idempotencyKey)
         );
         assertTrue(exception.getMessage().contains("Destination wallet not found"));

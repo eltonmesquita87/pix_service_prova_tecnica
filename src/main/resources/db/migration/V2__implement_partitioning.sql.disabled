@@ -1,0 +1,320 @@
+-- ============================================================================
+-- Migration V2: Implementar Particionamento em Tabelas Transacionais
+-- ============================================================================
+-- Objetivo: Garantir escalabilidade e performance em múltiplas ingestões simultâneas
+-- Estratégia: RANGE partitioning por created_at (partições mensais)
+-- Prioridade: ledger_entries (CRÍTICA), pix_transfers (MÉDIA), webhook_events (MÉDIA)
+-- ============================================================================
+
+-- ============================================================================
+-- PARTE 1: PARTICIONAMENTO DE ledger_entries (PRIORIDADE CRÍTICA)
+-- ============================================================================
+-- Razão: Maior volume de inserts (1,732), tabela append-only, crescimento contínuo
+
+-- 1.1. Renomear tabela existente para backup
+ALTER TABLE ledger_entries RENAME TO ledger_entries_old;
+
+-- 1.2. Criar tabela particionada
+CREATE TABLE ledger_entries (
+    id BIGSERIAL,
+    wallet_id BIGINT NOT NULL,
+    amount DECIMAL(19, 2) NOT NULL,
+    type VARCHAR(30) NOT NULL,
+    end_to_end_id VARCHAR(100),
+    metadata TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id, created_at),
+    CONSTRAINT fk_ledger_entries_wallet FOREIGN KEY (wallet_id) REFERENCES wallets(id)
+) PARTITION BY RANGE (created_at);
+
+-- 1.3. Criar partições para os próximos 12 meses (2025-2026)
+CREATE TABLE ledger_entries_2025_10 PARTITION OF ledger_entries
+    FOR VALUES FROM ('2025-10-01') TO ('2025-11-01');
+
+CREATE TABLE ledger_entries_2025_11 PARTITION OF ledger_entries
+    FOR VALUES FROM ('2025-11-01') TO ('2025-12-01');
+
+CREATE TABLE ledger_entries_2025_12 PARTITION OF ledger_entries
+    FOR VALUES FROM ('2025-12-01') TO ('2026-01-01');
+
+CREATE TABLE ledger_entries_2026_01 PARTITION OF ledger_entries
+    FOR VALUES FROM ('2026-01-01') TO ('2026-02-01');
+
+CREATE TABLE ledger_entries_2026_02 PARTITION OF ledger_entries
+    FOR VALUES FROM ('2026-02-01') TO ('2026-03-01');
+
+CREATE TABLE ledger_entries_2026_03 PARTITION OF ledger_entries
+    FOR VALUES FROM ('2026-03-01') TO ('2026-04-01');
+
+CREATE TABLE ledger_entries_2026_04 PARTITION OF ledger_entries
+    FOR VALUES FROM ('2026-04-01') TO ('2026-05-01');
+
+CREATE TABLE ledger_entries_2026_05 PARTITION OF ledger_entries
+    FOR VALUES FROM ('2026-05-01') TO ('2026-06-01');
+
+CREATE TABLE ledger_entries_2026_06 PARTITION OF ledger_entries
+    FOR VALUES FROM ('2026-06-01') TO ('2026-07-01');
+
+CREATE TABLE ledger_entries_2026_07 PARTITION OF ledger_entries
+    FOR VALUES FROM ('2026-07-01') TO ('2026-08-01');
+
+CREATE TABLE ledger_entries_2026_08 PARTITION OF ledger_entries
+    FOR VALUES FROM ('2026-08-01') TO ('2026-09-01');
+
+CREATE TABLE ledger_entries_2026_09 PARTITION OF ledger_entries
+    FOR VALUES FROM ('2026-09-01') TO ('2026-10-01');
+
+-- 1.4. Criar índices nas partições (automaticamente criados para todas as partições)
+CREATE INDEX IF NOT EXISTS idx_ledger_entries_wallet_created ON ledger_entries(wallet_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_ledger_entries_end_to_end_id ON ledger_entries(end_to_end_id);
+
+-- 1.5. Migrar dados existentes da tabela antiga para a particionada
+INSERT INTO ledger_entries (id, wallet_id, amount, type, end_to_end_id, metadata, created_at)
+SELECT id, wallet_id, amount, type, end_to_end_id, metadata, created_at
+FROM ledger_entries_old;
+
+-- 1.6. Atualizar sequence do id para continuar do valor máximo
+SELECT setval('ledger_entries_id_seq', (SELECT COALESCE(MAX(id), 1) FROM ledger_entries));
+
+-- 1.7. Dropar tabela antiga (comentado para segurança - descomentar após validação)
+-- DROP TABLE ledger_entries_old;
+
+-- ============================================================================
+-- PARTE 2: PARTICIONAMENTO DE pix_transfers (PRIORIDADE MÉDIA)
+-- ============================================================================
+-- Razão: 488 inserts + 145 updates (máquina de estados), 9.46% bloat
+
+-- 2.1. Renomear tabela existente para backup
+ALTER TABLE pix_transfers RENAME TO pix_transfers_old;
+
+-- 2.2. Criar tabela particionada
+CREATE TABLE pix_transfers (
+    end_to_end_id VARCHAR(100),
+    from_wallet_id BIGINT NOT NULL,
+    to_wallet_id BIGINT NOT NULL,
+    amount DECIMAL(19, 2) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    confirmed_at TIMESTAMP,
+    rejected_at TIMESTAMP,
+    PRIMARY KEY (end_to_end_id, created_at),
+    CONSTRAINT fk_pix_transfers_from_wallet FOREIGN KEY (from_wallet_id) REFERENCES wallets(id),
+    CONSTRAINT fk_pix_transfers_to_wallet FOREIGN KEY (to_wallet_id) REFERENCES wallets(id)
+) PARTITION BY RANGE (created_at);
+
+-- 2.3. Criar partições para os próximos 12 meses
+CREATE TABLE pix_transfers_2025_10 PARTITION OF pix_transfers
+    FOR VALUES FROM ('2025-10-01') TO ('2025-11-01');
+
+CREATE TABLE pix_transfers_2025_11 PARTITION OF pix_transfers
+    FOR VALUES FROM ('2025-11-01') TO ('2025-12-01');
+
+CREATE TABLE pix_transfers_2025_12 PARTITION OF pix_transfers
+    FOR VALUES FROM ('2025-12-01') TO ('2026-01-01');
+
+CREATE TABLE pix_transfers_2026_01 PARTITION OF pix_transfers
+    FOR VALUES FROM ('2026-01-01') TO ('2026-02-01');
+
+CREATE TABLE pix_transfers_2026_02 PARTITION OF pix_transfers
+    FOR VALUES FROM ('2026-02-01') TO ('2026-03-01');
+
+CREATE TABLE pix_transfers_2026_03 PARTITION OF pix_transfers
+    FOR VALUES FROM ('2026-03-01') TO ('2026-04-01');
+
+CREATE TABLE pix_transfers_2026_04 PARTITION OF pix_transfers
+    FOR VALUES FROM ('2026-04-01') TO ('2026-05-01');
+
+CREATE TABLE pix_transfers_2026_05 PARTITION OF pix_transfers
+    FOR VALUES FROM ('2026-05-01') TO ('2026-06-01');
+
+CREATE TABLE pix_transfers_2026_06 PARTITION OF pix_transfers
+    FOR VALUES FROM ('2026-06-01') TO ('2026-07-01');
+
+CREATE TABLE pix_transfers_2026_07 PARTITION OF pix_transfers
+    FOR VALUES FROM ('2026-07-01') TO ('2026-08-01');
+
+CREATE TABLE pix_transfers_2026_08 PARTITION OF pix_transfers
+    FOR VALUES FROM ('2026-08-01') TO ('2026-09-01');
+
+CREATE TABLE pix_transfers_2026_09 PARTITION OF pix_transfers
+    FOR VALUES FROM ('2026-09-01') TO ('2026-10-01');
+
+-- 2.4. Criar índices nas partições
+CREATE INDEX IF NOT EXISTS idx_pix_transfers_from_wallet ON pix_transfers(from_wallet_id);
+CREATE INDEX IF NOT EXISTS idx_pix_transfers_to_wallet ON pix_transfers(to_wallet_id);
+CREATE INDEX IF NOT EXISTS idx_pix_transfers_status ON pix_transfers(status);
+
+-- 2.5. Migrar dados existentes
+INSERT INTO pix_transfers (end_to_end_id, from_wallet_id, to_wallet_id, amount, status, created_at, confirmed_at, rejected_at)
+SELECT end_to_end_id, from_wallet_id, to_wallet_id, amount, status, created_at, confirmed_at, rejected_at
+FROM pix_transfers_old;
+
+-- 2.6. Dropar tabela antiga (comentado para segurança)
+-- DROP TABLE pix_transfers_old;
+
+-- ============================================================================
+-- PARTE 3: PARTICIONAMENTO DE webhook_events (PRIORIDADE MÉDIA)
+-- ============================================================================
+-- Razão: Tabela append-only, 145 inserts, crescimento contínuo
+
+-- 3.1. Renomear tabela existente para backup
+ALTER TABLE webhook_events RENAME TO webhook_events_old;
+
+-- 3.2. Criar tabela particionada
+CREATE TABLE webhook_events (
+    id BIGSERIAL,
+    event_id VARCHAR(100) NOT NULL,
+    end_to_end_id VARCHAR(100) NOT NULL,
+    event_type VARCHAR(20) NOT NULL,
+    processed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id, processed_at),
+    CONSTRAINT uk_event_id UNIQUE (event_id)
+) PARTITION BY RANGE (processed_at);
+
+-- 3.3. Criar partições para os próximos 12 meses
+CREATE TABLE webhook_events_2025_10 PARTITION OF webhook_events
+    FOR VALUES FROM ('2025-10-01') TO ('2025-11-01');
+
+CREATE TABLE webhook_events_2025_11 PARTITION OF webhook_events
+    FOR VALUES FROM ('2025-11-01') TO ('2025-12-01');
+
+CREATE TABLE webhook_events_2025_12 PARTITION OF webhook_events
+    FOR VALUES FROM ('2025-12-01') TO ('2026-01-01');
+
+CREATE TABLE webhook_events_2026_01 PARTITION OF webhook_events
+    FOR VALUES FROM ('2026-01-01') TO ('2026-02-01');
+
+CREATE TABLE webhook_events_2026_02 PARTITION OF webhook_events
+    FOR VALUES FROM ('2026-02-01') TO ('2026-03-01');
+
+CREATE TABLE webhook_events_2026_03 PARTITION OF webhook_events
+    FOR VALUES FROM ('2026-03-01') TO ('2026-04-01');
+
+CREATE TABLE webhook_events_2026_04 PARTITION OF webhook_events
+    FOR VALUES FROM ('2026-04-01') TO ('2026-05-01');
+
+CREATE TABLE webhook_events_2026_05 PARTITION OF webhook_events
+    FOR VALUES FROM ('2026-05-01') TO ('2026-06-01');
+
+CREATE TABLE webhook_events_2026_06 PARTITION OF webhook_events
+    FOR VALUES FROM ('2026-06-01') TO ('2026-07-01');
+
+CREATE TABLE webhook_events_2026_07 PARTITION OF webhook_events
+    FOR VALUES FROM ('2026-07-01') TO ('2026-08-01');
+
+CREATE TABLE webhook_events_2026_08 PARTITION OF webhook_events
+    FOR VALUES FROM ('2026-08-01') TO ('2026-09-01');
+
+CREATE TABLE webhook_events_2026_09 PARTITION OF webhook_events
+    FOR VALUES FROM ('2026-09-01') TO ('2026-10-01');
+
+-- 3.4. Criar índices nas partições
+CREATE INDEX IF NOT EXISTS idx_webhook_events_event_id ON webhook_events(event_id);
+CREATE INDEX IF NOT EXISTS idx_webhook_events_end_to_end_id ON webhook_events(end_to_end_id);
+
+-- 3.5. Migrar dados existentes
+INSERT INTO webhook_events (id, event_id, end_to_end_id, event_type, processed_at)
+SELECT id, event_id, end_to_end_id, event_type, processed_at
+FROM webhook_events_old;
+
+-- 3.6. Atualizar sequence do id para continuar do valor máximo
+SELECT setval('webhook_events_id_seq', (SELECT COALESCE(MAX(id), 1) FROM webhook_events));
+
+-- 3.7. Dropar tabela antiga (comentado para segurança)
+-- DROP TABLE webhook_events_old;
+
+-- ============================================================================
+-- PARTE 4: OTIMIZAÇÕES IMEDIATAS
+-- ============================================================================
+
+-- 4.1. Remover índice duplicado em idempotency_keys
+DROP INDEX IF EXISTS idx_idempotency_keys_scope_key;
+
+-- 4.2. Configurar autovacuum agressivo em pix_transfers (9.46% bloat)
+ALTER TABLE pix_transfers SET (
+    autovacuum_vacuum_scale_factor = 0.05,
+    autovacuum_analyze_scale_factor = 0.05,
+    autovacuum_vacuum_cost_limit = 2000
+);
+
+-- 4.3. Configurar autovacuum agressivo e fillfactor em wallets (5.30% bloat + alta taxa de updates)
+ALTER TABLE wallets SET (
+    autovacuum_vacuum_scale_factor = 0.05,
+    autovacuum_analyze_scale_factor = 0.05,
+    fillfactor = 80
+);
+
+-- ============================================================================
+-- PARTE 5: COMENTÁRIOS E DOCUMENTAÇÃO
+-- ============================================================================
+
+COMMENT ON TABLE ledger_entries IS 'Ledger imutável de transações - PARTICIONADO por created_at (mensal). Retenção: 12 meses online, restante arquivado.';
+COMMENT ON TABLE pix_transfers IS 'Transferências Pix - PARTICIONADO por created_at (mensal). Retenção: 24 meses online (conformidade Bacen).';
+COMMENT ON TABLE webhook_events IS 'Eventos de webhook processados - PARTICIONADO por processed_at (mensal). Retenção: 6 meses online.';
+
+-- ============================================================================
+-- VALIDAÇÃO PÓS-MIGRAÇÃO
+-- ============================================================================
+
+-- Verificar partições criadas
+DO $$
+DECLARE
+    partition_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO partition_count
+    FROM pg_inherits
+    WHERE inhparent::regclass::text IN ('ledger_entries', 'pix_transfers', 'webhook_events');
+
+    RAISE NOTICE 'Total de partições criadas: %', partition_count;
+
+    IF partition_count < 36 THEN
+        RAISE WARNING 'Esperado 36 partições (12 por tabela x 3 tabelas), encontrado apenas %', partition_count;
+    END IF;
+END $$;
+
+-- Verificar contagem de registros migrados
+DO $$
+DECLARE
+    ledger_old_count INTEGER;
+    ledger_new_count INTEGER;
+    transfers_old_count INTEGER;
+    transfers_new_count INTEGER;
+    webhooks_old_count INTEGER;
+    webhooks_new_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO ledger_old_count FROM ledger_entries_old;
+    SELECT COUNT(*) INTO ledger_new_count FROM ledger_entries;
+
+    SELECT COUNT(*) INTO transfers_old_count FROM pix_transfers_old;
+    SELECT COUNT(*) INTO transfers_new_count FROM pix_transfers;
+
+    SELECT COUNT(*) INTO webhooks_old_count FROM webhook_events_old;
+    SELECT COUNT(*) INTO webhooks_new_count FROM webhook_events;
+
+    RAISE NOTICE 'ledger_entries: % registros antigos → % registros novos', ledger_old_count, ledger_new_count;
+    RAISE NOTICE 'pix_transfers: % registros antigos → % registros novos', transfers_old_count, transfers_new_count;
+    RAISE NOTICE 'webhook_events: % registros antigos → % registros novos', webhooks_old_count, webhooks_new_count;
+
+    IF ledger_old_count != ledger_new_count THEN
+        RAISE WARNING 'ATENÇÃO: Contagem de ledger_entries diverge!';
+    END IF;
+
+    IF transfers_old_count != transfers_new_count THEN
+        RAISE WARNING 'ATENÇÃO: Contagem de pix_transfers diverge!';
+    END IF;
+
+    IF webhooks_old_count != webhooks_new_count THEN
+        RAISE WARNING 'ATENÇÃO: Contagem de webhook_events diverge!';
+    END IF;
+END $$;
+
+-- ============================================================================
+-- MIGRATION CONCLUÍDA
+-- ============================================================================
+-- Próximos passos:
+-- 1. Validar funcionamento da aplicação
+-- 2. Executar testes de performance
+-- 3. Comparar métricas antes/depois
+-- 4. Após validação (1-2 semanas), descomentar DROP das tabelas _old
+-- 5. Implementar automação de criação de partições futuras (pg_cron)
+-- ============================================================================

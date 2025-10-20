@@ -1,5 +1,6 @@
 package com.elton.pixservice.domain.entity;
 
+import com.elton.pixservice.domain.exception.ChavePixInvalidaException;
 import com.elton.pixservice.domain.valueobject.PixKeyType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,7 +49,7 @@ class PixKeyTest {
                 .build();
 
         // When & Then
-        assertThrows(IllegalArgumentException.class, pixKey::validate);
+        assertThrows(ChavePixInvalidaException.class, pixKey::validate);
     }
 
     @Test
@@ -94,7 +95,7 @@ class PixKeyTest {
                 .build();
 
         // When & Then
-        assertThrows(IllegalArgumentException.class, pixKey::validate);
+        assertThrows(ChavePixInvalidaException.class, pixKey::validate);
     }
 
     @Test
@@ -134,7 +135,7 @@ class PixKeyTest {
                 .build();
 
         // When & Then
-        assertThrows(IllegalArgumentException.class, pixKey::validate);
+        assertThrows(ChavePixInvalidaException.class, pixKey::validate);
     }
 
     @Test
@@ -161,7 +162,7 @@ class PixKeyTest {
                 .build();
 
         // When & Then
-        assertThrows(IllegalArgumentException.class, pixKey::validate);
+        assertThrows(ChavePixInvalidaException.class, pixKey::validate);
     }
 
     @Test
@@ -174,7 +175,7 @@ class PixKeyTest {
                 .build();
 
         // When & Then
-        assertThrows(IllegalArgumentException.class, pixKey::validate);
+        assertThrows(ChavePixInvalidaException.class, pixKey::validate);
     }
 
     @Test
@@ -187,7 +188,7 @@ class PixKeyTest {
                 .build();
 
         // When & Then
-        assertThrows(IllegalArgumentException.class, pixKey::validate);
+        assertThrows(ChavePixInvalidaException.class, pixKey::validate);
     }
 
     @Test
@@ -200,6 +201,6 @@ class PixKeyTest {
                 .build();
 
         // When & Then
-        assertThrows(IllegalArgumentException.class, pixKey::validate);
+        assertThrows(ChavePixInvalidaException.class, pixKey::validate);
     }
 }

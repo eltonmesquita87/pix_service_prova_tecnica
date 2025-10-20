@@ -1,5 +1,6 @@
 package com.elton.pixservice.domain.entity;
 
+import com.elton.pixservice.domain.exception.TransferenciaInvalidaException;
 import com.elton.pixservice.domain.valueobject.Money;
 import com.elton.pixservice.domain.valueobject.TransferStatus;
 import lombok.AllArgsConstructor;
@@ -28,8 +29,8 @@ public class PixTransfer {
 
     public void confirm() {
         if (!status.canTransitionTo(TransferStatus.CONFIRMED)) {
-            throw new IllegalStateException(
-                String.format("Cannot transition from %s to CONFIRMED", status)
+            throw TransferenciaInvalidaException.transicaoEstadoInvalida(
+                status.toString(), TransferStatus.CONFIRMED.toString()
             );
         }
         this.status = TransferStatus.CONFIRMED;
@@ -38,8 +39,8 @@ public class PixTransfer {
 
     public void reject() {
         if (!status.canTransitionTo(TransferStatus.REJECTED)) {
-            throw new IllegalStateException(
-                String.format("Cannot transition from %s to REJECTED", status)
+            throw TransferenciaInvalidaException.transicaoEstadoInvalida(
+                status.toString(), TransferStatus.REJECTED.toString()
             );
         }
         this.status = TransferStatus.REJECTED;

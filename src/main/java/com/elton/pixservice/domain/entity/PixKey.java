@@ -1,5 +1,6 @@
 package com.elton.pixservice.domain.entity;
 
+import com.elton.pixservice.domain.exception.ChavePixInvalidaException;
 import com.elton.pixservice.domain.valueobject.PixKeyType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,7 +25,7 @@ public class PixKey {
 
     public void validate() {
         if (keyValue == null || keyValue.isBlank()) {
-            throw new IllegalArgumentException("Pix key value cannot be empty");
+            throw ChavePixInvalidaException.valorVazio();
         }
 
         switch (keyType) {
@@ -41,33 +42,33 @@ public class PixKey {
                 validateEvp();
                 break;
             default:
-                throw new IllegalArgumentException("Unknown Pix key type: " + keyType);
+                throw ChavePixInvalidaException.tipoDesconhecido(keyType.toString());
         }
     }
 
     private void validateCpf() {
         String cleaned = keyValue.replaceAll("[^0-9]", "");
         if (cleaned.length() != 11) {
-            throw new IllegalArgumentException("Invalid CPF format");
+            throw ChavePixInvalidaException.cpfInvalido(keyValue);
         }
     }
 
     private void validateEmail() {
         if (!keyValue.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
-            throw new IllegalArgumentException("Invalid email format");
+            throw ChavePixInvalidaException.emailInvalido(keyValue);
         }
     }
 
     private void validatePhone() {
         String cleaned = keyValue.replaceAll("[^0-9]", "");
         if (cleaned.length() < 10 || cleaned.length() > 11) {
-            throw new IllegalArgumentException("Invalid phone format");
+            throw ChavePixInvalidaException.telefoneInvalido(keyValue);
         }
     }
 
     private void validateEvp() {
         if (keyValue.length() != 36) { // UUID format
-            throw new IllegalArgumentException("Invalid EVP format");
+            throw ChavePixInvalidaException.evpInvalido(keyValue);
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.elton.pixservice.domain.valueobject;
 
+import com.elton.pixservice.domain.exception.ValorInvalidoException;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Objects;
@@ -13,7 +15,7 @@ public final class Money {
 
     private Money(BigDecimal amount) {
         if (amount == null) {
-            throw new IllegalArgumentException("Amount cannot be null");
+            throw ValorInvalidoException.valorNaoPodeSerNulo();
         }
         this.amount = amount.setScale(2, RoundingMode.HALF_UP);
     }

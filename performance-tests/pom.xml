@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.elton.pixservice</groupId>
+    <artifactId>performance-tests</artifactId>
+    <version>1.0.0</version>
+    <name>Pix Service - Performance Tests</name>
+    <description>Gatling Performance Tests for Pix Service API</description>
+
+    <properties>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Gatling -->
+        <gatling.version>3.9.5</gatling.version>
+        <gatling-maven-plugin.version>4.6.0</gatling-maven-plugin.version>
+
+        <!-- Test Configuration (can be overridden via -D properties) -->
+        <base.url>http://localhost:8080</base.url>
+        <users>1000</users>
+        <rampup.duration>120</rampup.duration>
+        <test.duration>600</test.duration>
+        <rampdown.duration>60</rampdown.duration>
+    </properties>
+
+    <dependencies>
+        <!-- Gatling -->
+        <dependency>
+            <groupId>io.gatling.highcharts</groupId>
+            <artifactId>gatling-charts-highcharts</artifactId>
+            <version>${gatling.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Logging -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.4.11</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <testSourceDirectory>src/test/java</testSourceDirectory>
+        <plugins>
+            <!-- Gatling Maven Plugin -->
+            <plugin>
+                <groupId>io.gatling</groupId>
+                <artifactId>gatling-maven-plugin</artifactId>
+                <version>${gatling-maven-plugin.version}</version>
+                <configuration>
+                    <!-- Pass system properties to Gatling -->
+                    <jvmArgs>
+                        <jvmArg>-Dbase.url=${base.url}</jvmArg>
+                        <jvmArg>-Dusers=${users}</jvmArg>
+                        <jvmArg>-Drampup.duration=${rampup.duration}</jvmArg>
+                        <jvmArg>-Dtest.duration=${test.duration}</jvmArg>
+                        <jvmArg>-Drampdown.duration=${rampdown.duration}</jvmArg>
+                        <jvmArg>-Xms1024m</jvmArg>
+                        <jvmArg>-Xmx4096m</jvmArg>
+                    </jvmArgs>
+                    <!-- Run specific simulation -->
+                    <!-- <simulationClass>com.elton.pixservice.performance.PixServiceSimulation</simulationClass> -->
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Maven Compiler Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>11</source>
+                    <target>11</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!-- Profiles for different test scenarios -->
+    <profiles>
+        <!-- Smoke Test: Quick validation with low load -->
+        <profile>
+            <id>smoke</id>
+            <properties>
+                <users>10</users>
+                <rampup.duration>10</rampup.duration>
+                <test.duration>60</test.duration>
+                <rampdown.duration>10</rampdown.duration>
+            </properties>
+        </profile>
+
+        <!-- Load Test: Standard load test -->
+        <profile>
+            <id>load</id>
+            <properties>
+                <users>1000</users>
+                <rampup.duration>120</rampup.duration>
+                <test.duration>600</test.duration>
+                <rampdown.duration>60</rampdown.duration>
+            </properties>
+        </profile>
+
+        <!-- Stress Test: High load to find breaking point -->
+        <profile>
+            <id>stress</id>
+            <properties>
+                <users>5000</users>
+                <rampup.duration>300</rampup.duration>
+                <test.duration>900</test.duration>
+                <rampdown.duration>120</rampdown.duration>
+            </properties>
+        </profile>
+
+        <!-- Spike Test: Sudden spike in traffic -->
+        <profile>
+            <id>spike</id>
+            <properties>
+                <users>2000</users>
+                <rampup.duration>10</rampup.duration>
+                <test.duration>300</test.duration>
+                <rampdown.duration>10</rampdown.duration>
+            </properties>
+        </profile>
+    </profiles>
+</project>

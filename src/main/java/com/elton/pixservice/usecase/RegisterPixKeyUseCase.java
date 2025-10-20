@@ -1,6 +1,8 @@
 package com.elton.pixservice.usecase;
 
 import com.elton.pixservice.domain.entity.PixKey;
+import com.elton.pixservice.domain.exception.ChavePixJaRegistradaException;
+import com.elton.pixservice.domain.exception.WalletNaoEncontradaException;
 import com.elton.pixservice.domain.repository.PixKeyRepository;
 import com.elton.pixservice.domain.repository.WalletRepository;
 import com.elton.pixservice.domain.valueobject.PixKeyType;
@@ -23,12 +25,12 @@ public class RegisterPixKeyUseCase {
 
         // Validate wallet exists
         if (!walletRepository.existsById(walletId)) {
-            throw new IllegalArgumentException("Wallet not found: " + walletId);
+            throw new WalletNaoEncontradaException(walletId);
         }
 
         // Check if key already exists
         if (pixKeyRepository.existsByKeyValue(keyValue)) {
-            throw new IllegalStateException("Pix key already registered: " + keyValue);
+            throw new ChavePixJaRegistradaException(keyValue);
         }
 
         PixKey pixKey = PixKey.builder()

@@ -1,5 +1,7 @@
 package com.elton.pixservice.domain.entity;
 
+import com.elton.pixservice.domain.exception.SaldoInsuficienteException;
+import com.elton.pixservice.domain.exception.ValorInvalidoException;
 import com.elton.pixservice.domain.valueobject.Money;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,8 +11,11 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * Domain entity representing a digital wallet.
- * Contains business logic for wallet operations.
+ * Entidade de domínio representando uma carteira digital.
+ * Contém a lógica de negócio para operações de carteira.
+ *
+ * @author Sistema Pix
+ * @version 1.0
  */
 @Data
 @Builder
@@ -26,17 +31,17 @@ public class Wallet {
 
     public void deposit(Money amount) {
         if (amount.isNegative() || amount.isZero()) {
-            throw new IllegalArgumentException("Deposit amount must be positive");
+            throw ValorInvalidoException.depositoDeveSerPositivo();
         }
         this.balance = this.balance.add(amount);
     }
 
     public void withdraw(Money amount) {
         if (amount.isNegative() || amount.isZero()) {
-            throw new IllegalArgumentException("Withdraw amount must be positive");
+            throw ValorInvalidoException.saqueDeveSerPositivo();
         }
         if (this.balance.isLessThan(amount)) {
-            throw new IllegalStateException("Insufficient balance");
+            throw new SaldoInsuficienteException(this.balance.getAmount(), amount.getAmount());
         }
         this.balance = this.balance.subtract(amount);
     }

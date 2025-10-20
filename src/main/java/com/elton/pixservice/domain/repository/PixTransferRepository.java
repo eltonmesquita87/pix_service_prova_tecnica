@@ -9,6 +9,5 @@ import java.util.Optional;
  */
 public interface PixTransferRepository {
     PixTransfer save(PixTransfer pixTransfer);
-    Optional<PixTransfer> findByEndToEndId(String endToEndId);
     Optional<PixTransfer> findByEndToEndIdWithLock(String endToEndId);
 }

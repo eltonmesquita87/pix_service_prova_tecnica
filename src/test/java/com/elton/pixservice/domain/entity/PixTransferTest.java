@@ -1,5 +1,6 @@
 package com.elton.pixservice.domain.entity;
 
+import com.elton.pixservice.domain.exception.TransferenciaInvalidaException;
 import com.elton.pixservice.domain.valueobject.Money;
 import com.elton.pixservice.domain.valueobject.TransferStatus;
 import org.junit.jupiter.api.DisplayName;
@@ -77,8 +78,8 @@ class PixTransferTest {
                 .build();
 
         // When & Then
-        IllegalStateException exception = assertThrows(
-            IllegalStateException.class,
+        TransferenciaInvalidaException exception = assertThrows(
+            TransferenciaInvalidaException.class,
             transfer::confirm
         );
         assertTrue(exception.getMessage().contains("Cannot transition from CONFIRMED to CONFIRMED"));
@@ -93,8 +94,8 @@ class PixTransferTest {
                 .build();
 
         // When & Then
-        IllegalStateException exception = assertThrows(
-            IllegalStateException.class,
+        TransferenciaInvalidaException exception = assertThrows(
+            TransferenciaInvalidaException.class,
             transfer::reject
         );
         assertTrue(exception.getMessage().contains("Cannot transition from CONFIRMED to REJECTED"));
@@ -109,8 +110,8 @@ class PixTransferTest {
                 .build();
 
         // When & Then
-        IllegalStateException exception = assertThrows(
-            IllegalStateException.class,
+        TransferenciaInvalidaException exception = assertThrows(
+            TransferenciaInvalidaException.class,
             transfer::confirm
         );
         assertTrue(exception.getMessage().contains("Cannot transition from REJECTED to CONFIRMED"));
@@ -125,8 +126,8 @@ class PixTransferTest {
                 .build();
 
         // When & Then
-        IllegalStateException exception = assertThrows(
-            IllegalStateException.class,
+        TransferenciaInvalidaException exception = assertThrows(
+            TransferenciaInvalidaException.class,
             transfer::reject
         );
         assertTrue(exception.getMessage().contains("Cannot transition from REJECTED to REJECTED"));

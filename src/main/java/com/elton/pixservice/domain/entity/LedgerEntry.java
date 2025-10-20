@@ -1,5 +1,6 @@
 package com.elton.pixservice.domain.entity;
 
+import com.elton.pixservice.domain.exception.TipoLancamentoDesconhecidoException;
 import com.elton.pixservice.domain.valueobject.LedgerEntryType;
 import com.elton.pixservice.domain.valueobject.Money;
 import lombok.AllArgsConstructor;
@@ -39,7 +40,7 @@ public class LedgerEntry {
             case TRANSFER_DEBIT:
                 return Money.of(amount.getAmount().negate());
             default:
-                throw new IllegalStateException("Unknown ledger entry type: " + type);
+                throw new TipoLancamentoDesconhecidoException(type.toString());
         }
     }
 }

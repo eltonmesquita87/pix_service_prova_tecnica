@@ -2,6 +2,7 @@ package com.elton.pixservice.usecase;
 
 import com.elton.pixservice.domain.entity.LedgerEntry;
 import com.elton.pixservice.domain.entity.Wallet;
+import com.elton.pixservice.domain.exception.WalletNaoEncontradaException;
 import com.elton.pixservice.domain.repository.LedgerEntryRepository;
 import com.elton.pixservice.domain.repository.WalletRepository;
 import com.elton.pixservice.domain.valueobject.LedgerEntryType;
@@ -24,7 +25,7 @@ public class WithdrawUseCase {
         log.info("Processing withdraw for wallet: {}, amount: {}", walletId, amount);
 
         Wallet wallet = walletRepository.findByIdWithLock(walletId)
-                .orElseThrow(() -> new IllegalArgumentException("Wallet not found: " + walletId));
+                .orElseThrow(() -> new WalletNaoEncontradaException(walletId));
 
         wallet.withdraw(amount);
         Wallet updatedWallet = walletRepository.save(wallet);

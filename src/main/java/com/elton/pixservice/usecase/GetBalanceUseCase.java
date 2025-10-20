@@ -2,6 +2,7 @@ package com.elton.pixservice.usecase;
 
 import com.elton.pixservice.domain.entity.LedgerEntry;
 import com.elton.pixservice.domain.entity.Wallet;
+import com.elton.pixservice.domain.exception.WalletNaoEncontradaException;
 import com.elton.pixservice.domain.repository.LedgerEntryRepository;
 import com.elton.pixservice.domain.repository.WalletRepository;
 import com.elton.pixservice.domain.valueobject.Money;
@@ -27,7 +28,7 @@ public class GetBalanceUseCase {
         log.info("Getting current balance for wallet: {}", walletId);
 
         Wallet wallet = walletRepository.findById(walletId)
-                .orElseThrow(() -> new IllegalArgumentException("Wallet not found: " + walletId));
+                .orElseThrow(() -> new WalletNaoEncontradaException(walletId));
 
         return wallet.getBalance();
     }
@@ -38,7 +39,7 @@ public class GetBalanceUseCase {
 
         // Verify wallet exists
         if (!walletRepository.existsById(walletId)) {
-            throw new IllegalArgumentException("Wallet not found: " + walletId);
+            throw new WalletNaoEncontradaException(walletId);
         }
 
         // Calculate balance from ledger entries up to the timestamp

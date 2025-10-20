@@ -1,5 +1,6 @@
 package com.elton.pixservice.domain.valueobject;
 
+import com.elton.pixservice.domain.exception.ValorInvalidoException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -70,7 +71,7 @@ class MoneyTest {
     @DisplayName("Should throw exception when creating Money with null amount")
     void shouldThrowExceptionWhenCreatingMoneyWithNullAmount() {
         // When & Then
-        assertThrows(IllegalArgumentException.class, () -> Money.of((BigDecimal) null));
+        assertThrows(ValorInvalidoException.class, () -> Money.of((BigDecimal) null));
     }
 
     @Test

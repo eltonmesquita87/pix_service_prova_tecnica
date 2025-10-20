@@ -10,6 +10,5 @@ import java.util.List;
  */
 public interface LedgerEntryRepository {
     LedgerEntry save(LedgerEntry ledgerEntry);
-    List<LedgerEntry> findByWalletId(Long walletId);
     List<LedgerEntry> findByWalletIdAndCreatedAtBefore(Long walletId, LocalDateTime timestamp);
 }
