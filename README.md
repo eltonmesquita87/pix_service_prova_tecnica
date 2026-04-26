@@ -1,6 +1,6 @@
 # Pix Service - Microserviço de Carteira Digital
 
-Sistema de carteira digital com suporte completo a operações Pix, desenvolvido com Clean Architecture, garantindo **consistência**, **idempotência** e **auditabilidade**.
+Sistema de carteira digital com suporte completo a operações Pix, desenvolvido com Clean Architecture, garantindo **consistência**, **idempotência** e **auditabilidadE**.
 
 [![Performance](https://img.shields.io/badge/Performance-99.76%25%20Success-success)](./PERFORMANCE_RESULTS.md)
 [![Throughput](https://img.shields.io/badge/Throughput-44%20req%2Fs-blue)](./PERFORMANCE_RESULTS.md)
