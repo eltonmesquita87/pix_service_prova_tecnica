@@ -156,10 +156,10 @@ Cada requisito tem um ID único para rastrear design, tasks e validação.
 | WHOLD-14 | P1: Compatibilidade com clientes atuais | T13, T15, T17 | Implementing |
 | WHOLD-15 | P1: Compatibilidade com clientes atuais | T6, T7, T8, T17 | Implementing |
 | WHOLD-16 | P2: Proteção do CPF em resposta e logs | T3, T14, T15, T16, T17 | Implementing |
-| WHOLD-17 | P2: Proteção do CPF em resposta e logs | T14, T15, T17 | In Tasks |
+| WHOLD-17 | P2: Proteção do CPF em resposta e logs | T14, T15, T17 | Implementing |
 | WHOLD-18 | P2: Proteção do CPF em resposta e logs | T3, T4, T5, T7, T9, T10, T17 | Implementing |
 | WHOLD-19 | P2: Proteção do CPF em resposta e logs | T1, T2, T10, T11, T17 | Implementing |
-| WHOLD-20 | P2: Proteção do CPF em resposta e logs | T14, T15, T17 | In Tasks |
+| WHOLD-20 | P2: Proteção do CPF em resposta e logs | T14, T15, T17 | Implementing |
 
 **Coverage:** 20 total, 20 mapped to tasks, 0 unmapped
 

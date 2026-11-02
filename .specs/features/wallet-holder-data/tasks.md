@@ -211,7 +211,7 @@ T17 → T18
 - [x] A wallet built with a holder exposes it; `toString()` contains no CPF, e-mail, phone or name
 - [x] New cases added to `WalletTest`; its 11 existing tests are unchanged and pass
 - [x] Gate check passes: `"$MVN" -B -o test -DexcludedGroups=docker`
-- [x] Test count: previous total + >= 3 new tests pass, no deletions
+- [x] Test count: previous total + >= 3 new tests pass, no deletions (256 run, 4 new, 4 skipped)
 
 **Tests**: unit
 **Gate**: quick
@@ -501,14 +501,15 @@ T17 → T18
 
 **Done when**:
 
-- [ ] A response built with only `id`, `userId`, `balance` serializes without any of the four keys
-- [ ] A response with all four fields serializes them; `id`, `userId`, `balance` still serialize as before
-- [ ] `WalletResponseTest` written (>= 3 tests)
-- [ ] Gate check passes: `"$MVN" -B -o test -DexcludedGroups=docker`
-- [ ] Test count: previous total + >= 3 new tests pass, no deletions
+- [x] A response built with only `id`, `userId`, `balance` serializes without any of the four keys
+- [x] A response with all four fields serializes them; `id`, `userId`, `balance` still serialize as before
+- [x] `WalletResponseTest` written (>= 3 tests)
+- [x] Gate check passes: `"$MVN" -B -o test -DexcludedGroups=docker`
+- [x] Test count: previous total + >= 3 new tests pass, no deletions (256 run, 4 new, 4 skipped)
 
 **Tests**: unit
 **Gate**: quick
+**Status**: ✅ Done
 
 **Commit**: `feat(api): add holder fields to WalletResponse`
 
