@@ -420,9 +420,43 @@ POST /wallets
 Content-Type: application/json
 
 {
-  "userId": "user123"
+  "userId": "user123",
+  "cpf": "123.456.789-09",
+  "nome": "Maria Silva",
+  "email": "maria.silva@example.com",
+  "telefone": "+5511999999999"
 }
 ```
+
+Apenas `userId` é obrigatório. Os dados do titular (`cpf`, `nome`, `email`, `telefone`) são opcionais, e quem envia só `userId` continua recebendo o mesmo resultado de antes.
+
+| Campo | Formato e limites | Normalização |
+| ----- | ----------------- | ------------ |
+| `cpf` | 11 dígitos ou `###.###.###-##`, com dígitos verificadores válidos e dígitos não todos iguais | Gravado só com os 11 dígitos |
+| `nome` | 2 a 150 caracteres após remover espaços nas pontas | Sem espaços nas pontas |
+| `email` | Até 254 caracteres, formato de e-mail | Sem espaços nas pontas e em minúsculas |
+| `telefone` | E.164: `+` seguido de 8 a 15 dígitos, o primeiro diferente de 0 | Como enviado |
+
+Resposta `201 Created`, com o CPF mascarado (`nome`, `email` e `telefone` já normalizados; campos não enviados ficam fora da resposta):
+```json
+{
+  "id": 1,
+  "userId": "user123",
+  "balance": 0.00,
+  "cpf": "***.456.789-**",
+  "nome": "Maria Silva",
+  "email": "maria.silva@example.com",
+  "telefone": "+5511999999999"
+}
+```
+
+Erros:
+- `400 Bad Request` com `Invalid CPF`, `Invalid email`, `Invalid phone` ou `Invalid name` quando o campo é inválido. String vazia ou só com espaços também é inválida; para omitir um campo, não o envie ou envie `null`.
+- `400 Bad Request` com `Malformed request body` quando um campo tem tipo errado, por exemplo `cpf` como número.
+- `400 Bad Request` com `User ID is required` quando `userId` está ausente ou em branco.
+- `409 Conflict` com `CPF already registered` quando o CPF já pertence a outra carteira, com ou sem máscara, inclusive em requisições concorrentes.
+
+O CPF completo não aparece nas respostas da API nem nas mensagens de erro, e os endpoints de depósito e saque não devolvem dados do titular. Limitação conhecida: quando duas requisições concorrentes usam o mesmo CPF, o log de erro SQL do Hibernate (`org.hibernate.engine.jdbc.spi.SqlExceptionHelper`) pode conter o CPF (risco aceito, ver `.specs/features/wallet-holder-data`).
 
 #### Registrar Chave Pix
 ```http

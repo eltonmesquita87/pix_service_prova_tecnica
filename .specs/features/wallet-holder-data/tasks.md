@@ -625,12 +625,13 @@ T17 → T18
 
 **Done when**:
 
-- [ ] README shows a request with the four optional fields and a response with the masked CPF
-- [ ] Final gate passes with everything: `"$MVN" -B -o verify` (Docker Desktop running)
-- [ ] Test count: all tests pass, 4 original skips unchanged, no deletions
+- [x] README shows a request with the four optional fields and a response with the masked CPF
+- [x] Final gate passes with everything: `"$MVN" -B -o verify` (Docker Desktop running)
+- [x] Test count: all tests pass, 4 original skips unchanged, no deletions (verify: 325 run, 0 failures, 4 skipped)
 
 **Tests**: none
 **Gate**: build
+**Status**: ✅ Done
 
 **Commit**: `docs(wallet): document holder fields in README`
 
