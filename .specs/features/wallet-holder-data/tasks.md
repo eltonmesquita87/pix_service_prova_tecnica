@@ -89,12 +89,13 @@ T17 → T18
 
 **Done when**:
 
-- [ ] Class extends `DomainException` with the four factories and the exact messages above
-- [ ] Gate check passes: `"$MVN" -B -o verify -DexcludedGroups=docker`
-- [ ] Test count: 107 pass, 4 skipped, no deletions
+- [x] Class extends `DomainException` with the four factories and the exact messages above
+- [x] Gate check passes: `"$MVN" -B -o verify -DexcludedGroups=docker`
+- [x] Test count: 107 pass, 4 skipped, no deletions
 
 **Tests**: none
 **Gate**: build
+**Status**: ✅ Done
 
 **Commit**: `feat(wallet): add DadosTitularInvalidosException`
 

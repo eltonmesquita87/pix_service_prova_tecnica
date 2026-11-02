@@ -141,12 +141,12 @@ Cada requisito tem um ID único para rastrear design, tasks e validação.
 | Requirement ID | Story | Phase | Status |
 | -------------- | ----- | ----- | ------ |
 | WHOLD-01 | P1: Criar carteira com dados do titular | T4, T9, T15, T17 | In Tasks |
-| WHOLD-02 | P1: Criar carteira com dados do titular | T1, T3, T10, T15, T17 | In Tasks |
+| WHOLD-02 | P1: Criar carteira com dados do titular | T1, T3, T10, T15, T17 | Implementing |
 | WHOLD-03 | P1: Criar carteira com dados do titular | T3, T4, T8, T17 | In Tasks |
-| WHOLD-04 | P1: Criar carteira com dados do titular | T1, T4, T10, T17 | In Tasks |
+| WHOLD-04 | P1: Criar carteira com dados do titular | T1, T4, T10, T17 | Implementing |
 | WHOLD-05 | P1: Criar carteira com dados do titular | T4, T17 | In Tasks |
-| WHOLD-06 | P1: Criar carteira com dados do titular | T1, T4, T10, T17 | In Tasks |
-| WHOLD-07 | P1: Criar carteira com dados do titular | T1, T4, T10, T17 | In Tasks |
+| WHOLD-06 | P1: Criar carteira com dados do titular | T1, T4, T10, T17 | Implementing |
+| WHOLD-07 | P1: Criar carteira com dados do titular | T1, T4, T10, T17 | Implementing |
 | WHOLD-08 | P1: Criar carteira com dados do titular | T4, T17 | In Tasks |
 | WHOLD-09 | P1: Criar carteira com dados do titular | T4, T10, T15, T17 | In Tasks |
 | WHOLD-10 | P1: CPF único por carteira | T2, T8, T9, T10, T16, T17 | In Tasks |
@@ -158,7 +158,7 @@ Cada requisito tem um ID único para rastrear design, tasks e validação.
 | WHOLD-16 | P2: Proteção do CPF em resposta e logs | T3, T14, T15, T16, T17 | In Tasks |
 | WHOLD-17 | P2: Proteção do CPF em resposta e logs | T14, T15, T17 | In Tasks |
 | WHOLD-18 | P2: Proteção do CPF em resposta e logs | T3, T4, T5, T7, T9, T10, T17 | In Tasks |
-| WHOLD-19 | P2: Proteção do CPF em resposta e logs | T1, T2, T10, T11, T17 | In Tasks |
+| WHOLD-19 | P2: Proteção do CPF em resposta e logs | T1, T2, T10, T11, T17 | Implementing |
 | WHOLD-20 | P2: Proteção do CPF em resposta e logs | T14, T15, T17 | In Tasks |
 
 **Coverage:** 20 total, 20 mapped to tasks, 0 unmapped
