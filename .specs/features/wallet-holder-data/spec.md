@@ -149,7 +149,7 @@ Cada requisito tem um ID único para rastrear design, tasks e validação.
 | WHOLD-07 | P1: Criar carteira com dados do titular | T1, T4, T10, T17 | Implementing |
 | WHOLD-08 | P1: Criar carteira com dados do titular | T4, T17 | In Tasks |
 | WHOLD-09 | P1: Criar carteira com dados do titular | T4, T10, T15, T17 | In Tasks |
-| WHOLD-10 | P1: CPF único por carteira | T2, T8, T9, T10, T16, T17 | In Tasks |
+| WHOLD-10 | P1: CPF único por carteira | T2, T8, T9, T10, T16, T17 | Implementing |
 | WHOLD-11 | P1: CPF único por carteira | T6, T8, T10, T17 | In Tasks |
 | WHOLD-12 | P1: CPF único por carteira | T6, T8, T17 | In Tasks |
 | WHOLD-13 | P1: Compatibilidade com clientes atuais | T5, T9, T13, T15, T17 | In Tasks |

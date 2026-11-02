@@ -116,12 +116,13 @@ T17 → T18
 
 **Done when**:
 
-- [ ] Class extends `DomainException`, message is exactly "CPF already registered"
-- [ ] Gate check passes: `"$MVN" -B -o verify -DexcludedGroups=docker`
-- [ ] Test count: 107 pass, 4 skipped, no deletions
+- [x] Class extends `DomainException`, message is exactly "CPF already registered"
+- [x] Gate check passes: `"$MVN" -B -o verify -DexcludedGroups=docker`
+- [x] Test count: 107 pass, 4 skipped, no deletions
 
 **Tests**: none
 **Gate**: build
+**Status**: ✅ Done
 
 **Commit**: `feat(wallet): add CpfJaCadastradoException`
 
