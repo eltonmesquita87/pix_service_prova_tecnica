@@ -471,15 +471,16 @@ T17 → T18
 
 **Done when**:
 
-- [ ] `{"userId":"u"}` deserializes with the four new fields null; `new CreateWalletRequest("u")` compiles and behaves the same
-- [ ] `{"userId":"u","cpf":12345678909}` fails deserialization, and so do numeric `nome`, `email`, `telefone`
-- [ ] `toString()` contains no CPF, e-mail, phone or name
-- [ ] `CreateWalletRequestTest` written (>= 5 tests)
-- [ ] Gate check passes: `"$MVN" -B -o test -DexcludedGroups=docker`
-- [ ] Test count: previous total + >= 5 new tests pass, no deletions
+- [x] `{"userId":"u"}` deserializes with the four new fields null; `new CreateWalletRequest("u")` compiles and behaves the same
+- [x] `{"userId":"u","cpf":12345678909}` fails deserialization, and so do numeric `nome`, `email`, `telefone`
+- [x] `toString()` contains no CPF, e-mail, phone or name
+- [x] `CreateWalletRequestTest` written (>= 5 tests)
+- [x] Gate check passes: `"$MVN" -B -o test -DexcludedGroups=docker`
+- [x] Test count: previous total + >= 5 new tests pass, no deletions (252 run, 11 new, 4 skipped)
 
 **Tests**: unit
 **Gate**: quick
+**Status**: ✅ Done
 
 **Commit**: `feat(api): add holder fields to CreateWalletRequest`
 
