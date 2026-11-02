@@ -143,16 +143,17 @@ T17 → T18
 
 **Done when**:
 
-- [ ] `of` accepts 11 digits and `###.###.###-##`, stores only the 11 digits (`12345678909` and `123.456.789-09` give equal digits)
-- [ ] `of` throws `DadosTitularInvalidosException` ("Invalid CPF") for: wrong check digit, 10 and 12 digits, letters, spaces inside, other separators (`123 456 789 09`), leading or trailing space, all-equal digits (`00000000000` to `99999999999`), empty and blank string
-- [ ] `masked()` returns `***.456.789-**` for `12345678909`; `toString()` returns the same masked value
-- [ ] `restore(digits)` does not revalidate
-- [ ] `CpfTest` written (>= 12 tests, each `@DisplayName` cites its WHOLD id), including a case where a mutated check digit makes `of` fail
-- [ ] Gate check passes: `"$MVN" -B -o test -DexcludedGroups=docker`
-- [ ] Test count: 107 existing pass + new tests pass, no deletions
+- [x] `of` accepts 11 digits and `###.###.###-##`, stores only the 11 digits (`12345678909` and `123.456.789-09` give equal digits)
+- [x] `of` throws `DadosTitularInvalidosException` ("Invalid CPF") for: wrong check digit, 10 and 12 digits, letters, spaces inside, other separators (`123 456 789 09`), leading or trailing space, all-equal digits (`00000000000` to `99999999999`), empty and blank string
+- [x] `masked()` returns `***.456.789-**` for `12345678909`; `toString()` returns the same masked value
+- [x] `restore(digits)` does not revalidate
+- [x] `CpfTest` written (>= 12 tests, each `@DisplayName` cites its WHOLD id), including a case where a mutated check digit makes `of` fail
+- [x] Gate check passes: `"$MVN" -B -o test -DexcludedGroups=docker`
+- [x] Test count: 107 existing pass + new tests pass, no deletions
 
 **Tests**: unit
 **Gate**: quick
+**Status**: ✅ Done
 
 **Commit**: `feat(wallet): add Cpf value object with validation and masking`
 
