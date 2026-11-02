@@ -94,7 +94,7 @@ services:
 
       # JPA/Hibernate
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
-      SPRING_JPA_SHOW_SQL: false
+      SPRING_JPA_SHOW_SQL: falsequ
       SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: false
 
       # Logging
@@ -185,8 +185,8 @@ services:
     depends_on:
       - pix-service
     ports:
-      - "8080:80"      # Aplicação (HTTP)
-      - "8081:8081"    # Metrics/Actuator (agregado)
+      - "8090:80"      # Aplicação (HTTP)
+      - "8091:8081"    # Metrics/Actuator (agregado)
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
@@ -195,7 +195,8 @@ services:
       - frontend
       - backend
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      # 127.0.0.1 (e não localhost): no Alpine localhost resolve para ::1 e o nginx escuta só em IPv4
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -369,11 +370,11 @@ volumes:
 #   docker-compose -f docker-compose.distributed.yml down -v
 #
 # Health check via load balancer:
-#   curl http://localhost:8080/actuator/health
+#   curl http://localhost:8090/actuator/health
 #
 # Metrics agregadas via load balancer:
-#   curl http://localhost:8081/actuator/prometheus
+#   curl http://localhost:8091/actuator/prometheus
 #
 # Testar balanceamento:
-#   for i in {1..10}; do curl http://localhost:8080/actuator/info | jq -r '.app.instance'; done
+#   for i in {1..10}; do curl http://localhost:8090/actuator/info | jq -r '.app.instance'; done
 # =======================================================================================

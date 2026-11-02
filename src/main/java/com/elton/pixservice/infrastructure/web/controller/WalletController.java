@@ -2,6 +2,7 @@ package com.elton.pixservice.infrastructure.web.controller;
 
 import com.elton.pixservice.domain.entity.Wallet;
 import com.elton.pixservice.domain.valueobject.Money;
+import com.elton.pixservice.domain.valueobject.WalletHolder;
 import com.elton.pixservice.infrastructure.web.controller.api.WalletControllerApi;
 import com.elton.pixservice.infrastructure.web.dto.*;
 import com.elton.pixservice.usecase.*;
@@ -38,12 +39,20 @@ public class WalletController implements WalletControllerApi {
     public ResponseEntity<WalletResponse> createWallet(@RequestBody CreateWalletRequest request) {
         log.info("Received request to create wallet for user: {}", request.getUserId());
 
-        Wallet wallet = createWalletUseCase.execute(request.getUserId());
+        WalletHolder holder = WalletHolder.of(
+                request.getCpf(), request.getNome(), request.getEmail(), request.getTelefone());
 
+        Wallet wallet = createWalletUseCase.execute(request.getUserId(), holder);
+
+        WalletHolder savedHolder = wallet.getHolder();
         WalletResponse response = WalletResponse.builder()
                 .id(wallet.getId())
                 .userId(wallet.getUserId())
                 .balance(wallet.getBalance().getAmount())
+                .cpf(savedHolder.getCpf() == null ? null : savedHolder.getCpf().masked())
+                .nome(savedHolder.getNome())
+                .email(savedHolder.getEmail())
+                .telefone(savedHolder.getTelefone())
                 .build();
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);

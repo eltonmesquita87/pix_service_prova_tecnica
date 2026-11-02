@@ -25,7 +25,6 @@ public class IdempotencyRepositoryImpl implements IdempotencyRepository {
         jpaRepository.save(entity);
     }
 
-    @Override
     @Transactional(readOnly = true)
     public Optional<String> findResponse(String scope, String key) {
         return jpaRepository.findByScopeAndKeyValue(scope, key)

@@ -24,10 +24,10 @@ docker-compose -f docker-compose.distributed.yml build
 docker-compose -f docker-compose.distributed.yml up -d --scale pix-service=2
 
 # 3. Verificar saúde do cluster
-curl http://localhost:8080/actuator/health
+curl http://localhost:8090/actuator/health
 ```
 
-Acesse: `http://localhost:8080` (balanceado entre as réplicas)
+Acesse: `http://localhost:8090` (balanceado entre as réplicas)
 
 **Características:**
 - Load balancing automático (round-robin)
@@ -64,7 +64,7 @@ O sistema está pronto para execução em **produção** com suporte a **múltip
 
 ```
 Internet → NGINX → [Replica 1 | Replica 2 | Replica N] → PostgreSQL
-             (Port 8080)      (Auto-scaling + Health Checks)      (High Availability)
+             (Port 8090)      (Auto-scaling + Health Checks)      (High Availability)
 ```
 
 **Características:**
@@ -135,7 +135,7 @@ mvn clean install
 mvn spring-boot:run
 ```
 
-A aplicação estará disponível em: `http://localhost:8080`
+A aplicação estará disponível em: `http://localhost:8090`
 
 ---
 
@@ -181,7 +181,7 @@ docker-compose -f docker-compose.distributed.yml ps
        ▼
 ┌─────────────┐
 │   NGINX     │  Load Balancer (Round-robin)
-│  Port: 8080 │  Health Checks: Passive
+│  Port: 8090 │  Health Checks: Passive
 └──────┬──────┘
        │
        ├─────────────┬─────────────┐
@@ -211,20 +211,20 @@ O NGINX está configurado com:
 - **Compression**: Gzip habilitado
 
 **Endpoints expostos:**
-- `http://localhost:8080` - Aplicação (balanceada)
-- `http://localhost:8081` - Métricas agregadas
+- `http://localhost:8090` - Aplicação (balanceada)
+- `http://localhost:8091` - Métricas agregadas
 
 #### Verificar Distribuição de Carga
 
 ```bash
 # Teste de carga com curl (10 requisições)
 for i in {1..10}; do
-  curl -s http://localhost:8080/actuator/health | grep -o "UP"
+  curl -s http://localhost:8090/actuator/health | grep -o "UP"
   echo " - Request $i"
 done
 
 # Verificar qual réplica respondeu (header X-Upstream-Addr)
-curl -I http://localhost:8080/actuator/health | grep X-Upstream-Addr
+curl -I http://localhost:8090/actuator/health | grep X-Upstream-Addr
 ```
 
 ### Configuração de Recursos
@@ -287,10 +287,10 @@ docker-compose -f docker-compose.distributed.yml exec pix-service curl localhost
 
 ```bash
 # Prometheus metrics (todas as réplicas via NGINX)
-curl http://localhost:8081/actuator/prometheus
+curl http://localhost:8091/actuator/prometheus
 
 # Health check agregado
-curl http://localhost:8081/actuator/health
+curl http://localhost:8091/actuator/health
 ```
 
 ### Segregação de Redes
@@ -391,7 +391,7 @@ A API possui documentação interativa completa usando **Swagger/OpenAPI**:
 
 ### Swagger UI (Documentação Interativa)
 ```
-http://localhost:8080/swagger-ui/
+http://localhost:8090/swagger-ui/
 ```
 
 Interface visual onde você pode:
@@ -402,7 +402,7 @@ Interface visual onde você pode:
 
 ### OpenAPI JSON (Especificação)
 ```
-http://localhost:8080/v2/api-docs
+http://localhost:8090/v2/api-docs
 ```
 
 Especificação OpenAPI em formato JSON para:
@@ -420,9 +420,43 @@ POST /wallets
 Content-Type: application/json
 
 {
-  "userId": "user123"
+  "userId": "user123",
+  "cpf": "123.456.789-09",
+  "nome": "Maria Silva",
+  "email": "maria.silva@example.com",
+  "telefone": "+5511999999999"
 }
 ```
+
+Apenas `userId` é obrigatório. Os dados do titular (`cpf`, `nome`, `email`, `telefone`) são opcionais, e quem envia só `userId` continua recebendo o mesmo resultado de antes.
+
+| Campo | Formato e limites | Normalização |
+| ----- | ----------------- | ------------ |
+| `cpf` | 11 dígitos ou `###.###.###-##`, com dígitos verificadores válidos e dígitos não todos iguais | Gravado só com os 11 dígitos |
+| `nome` | 2 a 150 caracteres após remover espaços nas pontas | Sem espaços nas pontas |
+| `email` | Até 254 caracteres, formato de e-mail | Sem espaços nas pontas e em minúsculas |
+| `telefone` | E.164: `+` seguido de 8 a 15 dígitos, o primeiro diferente de 0 | Como enviado |
+
+Resposta `201 Created`, com o CPF mascarado (`nome`, `email` e `telefone` já normalizados; campos não enviados ficam fora da resposta):
+```json
+{
+  "id": 1,
+  "userId": "user123",
+  "balance": 0.00,
+  "cpf": "***.456.789-**",
+  "nome": "Maria Silva",
+  "email": "maria.silva@example.com",
+  "telefone": "+5511999999999"
+}
+```
+
+Erros:
+- `400 Bad Request` com `Invalid CPF`, `Invalid email`, `Invalid phone` ou `Invalid name` quando o campo é inválido. String vazia ou só com espaços também é inválida; para omitir um campo, não o envie ou envie `null`.
+- `400 Bad Request` com `Malformed request body` quando um campo tem tipo errado, por exemplo `cpf` como número.
+- `400 Bad Request` com `User ID is required` quando `userId` está ausente ou em branco.
+- `409 Conflict` com `CPF already registered` quando o CPF já pertence a outra carteira, com ou sem máscara, inclusive em requisições concorrentes.
+
+O CPF completo não aparece nas respostas da API nem nas mensagens de erro, e os endpoints de depósito e saque não devolvem dados do titular. Limitação conhecida: quando duas requisições concorrentes usam o mesmo CPF, o log de erro SQL do Hibernate (`org.hibernate.engine.jdbc.spi.SqlExceptionHelper`) pode conter o CPF (risco aceito, ver `.specs/features/wallet-holder-data`).
 
 #### Registrar Chave Pix
 ```http
@@ -573,9 +607,9 @@ Estados terminais: CONFIRMED e REJECTED não permitem transições.
 
 ### Actuator Endpoints
 
-- Health: `http://localhost:8080/actuator/health`
-- Metrics: `http://localhost:8080/actuator/metrics`
-- Prometheus: `http://localhost:8080/actuator/prometheus`
+- Health: `http://localhost:8090/actuator/health`
+- Metrics: `http://localhost:8090/actuator/metrics`
+- Prometheus: `http://localhost:8090/actuator/prometheus`
 
 ## Cenários de Concorrência Tratados
 

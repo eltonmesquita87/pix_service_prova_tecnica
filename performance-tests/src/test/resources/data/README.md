@@ -166,5 +166,5 @@ Para aumentar a massa de dados:
 
 Documentação completa da API disponível em:
 ```
-http://localhost:8080/v2/api-docs
+http://localhost:8090/v2/api-docs
 ```

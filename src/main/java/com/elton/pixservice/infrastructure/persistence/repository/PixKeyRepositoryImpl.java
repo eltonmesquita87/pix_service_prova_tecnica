@@ -31,7 +31,6 @@ public class PixKeyRepositoryImpl implements PixKeyRepository {
         return jpaRepository.findByKeyValue(keyValue).map(this::toDomain);
     }
 
-    @Override
     @Transactional(readOnly = true)
     public List<PixKey> findByWalletId(Long walletId) {
         return jpaRepository.findByWalletId(walletId).stream()

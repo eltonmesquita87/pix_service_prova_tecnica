@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -74,6 +75,22 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 
+    @ExceptionHandler(CpfJaCadastradoException.class)
+    public ResponseEntity<ErrorResponse> handleCpfJaCadastrado(
+            CpfJaCadastradoException ex, HttpServletRequest request) {
+        log.warn("CPF already registered");
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.CONFLICT.value())
+                .error("Conflict")
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
     @ExceptionHandler(RequisicaoDuplicadaException.class)
     public ResponseEntity<ErrorResponse> handleRequisicaoDuplicada(
             RequisicaoDuplicadaException ex, HttpServletRequest request) {
@@ -112,6 +129,22 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleChavePixInvalida(
             ChavePixInvalidaException ex, HttpServletRequest request) {
         log.warn("Invalid Pix key: {}", ex.getMessage());
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Bad Request")
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(DadosTitularInvalidosException.class)
+    public ResponseEntity<ErrorResponse> handleDadosTitularInvalidos(
+            DadosTitularInvalidosException ex, HttpServletRequest request) {
+        log.warn("Invalid holder data: {}", ex.getMessage());
 
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
@@ -244,9 +277,41 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(
+            HttpMessageNotReadableException ex, HttpServletRequest request) {
+        // The exception message may carry the value typed by the client (e.g. a CPF), so it is never logged (AD-001).
+        log.warn("Malformed request body");
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Bad Request")
+                .message("Malformed request body")
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(
             DataIntegrityViolationException ex, HttpServletRequest request) {
+        if (ex.getMessage() != null && ex.getMessage().contains("uk_wallets_cpf")) {
+            // The Postgres detail ("Key (cpf)=(...)") carries the CPF, so neither the message nor the stack trace is logged (AD-001).
+            log.warn("CPF uniqueness violation");
+
+            ErrorResponse cpfResponse = ErrorResponse.builder()
+                    .timestamp(LocalDateTime.now())
+                    .status(HttpStatus.CONFLICT.value())
+                    .error("Conflict")
+                    .message("CPF already registered")
+                    .path(request.getRequestURI())
+                    .build();
+
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(cpfResponse);
+        }
+
         log.error("Data integrity violation: {}", ex.getMessage(), ex);
 
         String message = "Data integrity violation";

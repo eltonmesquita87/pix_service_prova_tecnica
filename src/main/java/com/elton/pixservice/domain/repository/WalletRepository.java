@@ -1,6 +1,7 @@
 package com.elton.pixservice.domain.repository;
 
 import com.elton.pixservice.domain.entity.Wallet;
+import com.elton.pixservice.domain.valueobject.Cpf;
 
 import java.util.Optional;
 
@@ -13,4 +14,5 @@ public interface WalletRepository {
     Optional<Wallet> findById(Long id);
     Optional<Wallet> findByIdWithLock(Long id);
     boolean existsById(Long id);
+    boolean existsByCpf(Cpf cpf);
 }

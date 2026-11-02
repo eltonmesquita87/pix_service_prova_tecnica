@@ -26,7 +26,6 @@ public class LedgerEntryRepositoryImpl implements LedgerEntryRepository {
         return toDomain(saved);
     }
 
-    @Override
     @Transactional(readOnly = true)
     public List<LedgerEntry> findByWalletId(Long walletId) {
         return jpaRepository.findByWalletId(walletId).stream()

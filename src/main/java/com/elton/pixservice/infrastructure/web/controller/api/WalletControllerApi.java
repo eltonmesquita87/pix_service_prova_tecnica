@@ -24,10 +24,16 @@ import java.time.LocalDateTime;
 @Api(tags = "Wallet Management", description = "Operações de gerenciamento de carteiras digitais")
 public interface WalletControllerApi {
 
-    @ApiOperation(value = "Criar carteira", notes = "Cria uma nova carteira digital para um usuário")
+    @ApiOperation(value = "Criar carteira",
+            notes = "Cria uma nova carteira digital para um usuário. Os dados do titular (cpf, nome, email e telefone) "
+                    + "são opcionais e podem ser enviados em qualquer combinação. O CPF é único por carteira, "
+                    + "comparado pelos 11 dígitos. Na resposta o CPF é devolvido mascarado (***.456.789-**); "
+                    + "nome, email e telefone são devolvidos normalizados. As respostas de depósito e saque "
+                    + "não trazem os dados do titular.")
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "Carteira criada com sucesso"),
-            @ApiResponse(code = 400, message = "Dados inválidos na requisição")
+            @ApiResponse(code = 400, message = "Dados inválidos na requisição"),
+            @ApiResponse(code = 409, message = "CPF já cadastrado")
     })
     ResponseEntity<WalletResponse> createWallet(
             @ApiParam(value = "Dados da carteira a ser criada", required = true)

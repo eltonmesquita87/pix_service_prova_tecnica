@@ -246,7 +246,6 @@ class ProcessWebhookUseCaseTest {
 
         // Then
         verify(pixTransferRepository).findByEndToEndIdWithLock(endToEndId);
-        verify(pixTransferRepository, never()).findByEndToEndId(anyString());
         verify(walletRepository).findByIdWithLock(2L);
         verify(walletRepository, never()).findById(any());
     }

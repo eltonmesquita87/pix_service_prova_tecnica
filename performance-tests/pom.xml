@@ -21,7 +21,7 @@
         <gatling-maven-plugin.version>4.6.0</gatling-maven-plugin.version>
 
         <!-- Test Configuration (can be overridden via -D properties) -->
-        <base.url>http://localhost:8080</base.url>
+        <base.url>http://localhost:8090</base.url>
         <users>1000</users>
         <rampup.duration>120</rampup.duration>
         <test.duration>600</test.duration>
