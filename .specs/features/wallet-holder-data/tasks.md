@@ -236,12 +236,13 @@ T17 → T18
 
 **Done when**:
 
-- [ ] File matches the SQL in the design; no `NOT NULL`, no default, no backfill
-- [ ] Gate check passes: `"$MVN" -B -o verify -DexcludedGroups=docker` (the migration itself runs against Postgres in T8)
-- [ ] Test count: previous total pass, no deletions
+- [x] File matches the SQL in the design; no `NOT NULL`, no default, no backfill
+- [x] Gate check passes: `"$MVN" -B -o verify -DexcludedGroups=docker` (the migration itself runs against Postgres in T8)
+- [x] Test count: previous total pass, no deletions
 
 **Tests**: none
 **Gate**: build
+**Status**: ✅ Done
 
 **Commit**: `feat(wallet): add migration for wallet holder columns`
 
