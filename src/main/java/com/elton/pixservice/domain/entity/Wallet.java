@@ -3,10 +3,12 @@ package com.elton.pixservice.domain.entity;
 import com.elton.pixservice.domain.exception.SaldoInsuficienteException;
 import com.elton.pixservice.domain.exception.ValorInvalidoException;
 import com.elton.pixservice.domain.valueobject.Money;
+import com.elton.pixservice.domain.valueobject.WalletHolder;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
 
@@ -28,6 +30,9 @@ public class Wallet {
     private Long version;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    @Builder.Default
+    @ToString.Exclude
+    private WalletHolder holder = WalletHolder.empty();
 
     public void deposit(Money amount) {
         if (amount.isNegative() || amount.isZero()) {

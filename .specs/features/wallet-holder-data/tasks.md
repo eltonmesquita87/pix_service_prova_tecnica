@@ -207,14 +207,15 @@ T17 → T18
 
 **Done when**:
 
-- [ ] `Wallet.builder().build().getHolder()` is never null and is empty
-- [ ] A wallet built with a holder exposes it; `toString()` contains no CPF, e-mail, phone or name
-- [ ] New cases added to `WalletTest`; its 11 existing tests are unchanged and pass
-- [ ] Gate check passes: `"$MVN" -B -o test -DexcludedGroups=docker`
-- [ ] Test count: previous total + >= 3 new tests pass, no deletions
+- [x] `Wallet.builder().build().getHolder()` is never null and is empty
+- [x] A wallet built with a holder exposes it; `toString()` contains no CPF, e-mail, phone or name
+- [x] New cases added to `WalletTest`; its 11 existing tests are unchanged and pass
+- [x] Gate check passes: `"$MVN" -B -o test -DexcludedGroups=docker`
+- [x] Test count: previous total + >= 3 new tests pass, no deletions
 
 **Tests**: unit
 **Gate**: quick
+**Status**: ✅ Done
 
 **Commit**: `feat(wallet): add holder to Wallet entity`
 
