@@ -55,7 +55,7 @@ T1 → T2 → T3 → T4 → T5
 ### Phase 2: Persistence
 
 ```
-T6 → T7 → T8
+T6 → T7 → T19 → T8
 ```
 
 ### Phase 3: Use case and web
@@ -275,11 +275,38 @@ T17 → T18
 
 ---
 
+### T19: Make Spring and Testcontainers tests runnable (added during Execute)
+
+**What**: Configure `maven-surefire-plugin` to drop `org.codehaus.groovy:groovy` and `groovy-xml` (Spring Boot managed 3.0.19) from the test classpath and to pass `-Dapi.version=1.44` to the test JVM. Without it no Spring context test boots: Groovy 3.0.19 conflicts with the explicit 4.0.16 in `pom.xml`, and Testcontainers 1.19.3 gets `Status 400` from Docker Engine 29.9.2. Found by the T8 worker; both problems predate this feature and explain why every HTTP test in the repo is `@Disabled`.
+**Where**: `pom.xml`
+**Depends on**: T7
+**Reuses**: nothing; no file outside the repository is touched
+**Requirement**: Enabler for T8 and T17 (no WHOLD id)
+
+**Tools**:
+
+- MCP: NONE
+- Skill: NONE
+
+**Done when**:
+
+- [x] `pom.xml` has a `maven-surefire-plugin` entry with `classpathDependencyExcludes` for the two Groovy artifacts and `<argLine>-Dapi.version=1.44</argLine>`; no dependency version changes
+- [x] The Full gate with no command-line workaround, `"$MVN" -B -o test`, boots a Spring context against Postgres: `WalletRepositoryIntegrationTest` (present in the working tree, uncommitted until T8) runs 8 tests with 0 errors
+- [x] Test count: all tests pass, 4 original skips unchanged, no deletions (222 run, 0 failures, 0 errors, 4 skipped)
+
+**Tests**: none
+**Gate**: full
+**Status**: ✅ Done
+
+**Commit**: `build(test): make Spring and Testcontainers tests runnable`
+
+---
+
 ### T8: Persist holder and add existsByCpf
 
 **What**: `existsByCpf` in the port, the JPA repository and the implementation, plus holder mapping in `toJpaEntity` and `toDomain` (null holder columns map to `WalletHolder.empty()`; CPF read with `Cpf.restore`).
 **Where**: `src/main/java/com/elton/pixservice/infrastructure/persistence/repository/WalletRepositoryImpl.java` (also `WalletRepository` port and `WalletJpaRepository`: an interface and its implementation cannot compile apart)
-**Depends on**: T7
+**Depends on**: T19
 **Reuses**: existing `toJpaEntity` and `toDomain`
 **Requirement**: WHOLD-03, WHOLD-10, WHOLD-11, WHOLD-12, WHOLD-15
 
@@ -605,12 +632,12 @@ T17 → T18
 Phase 1 → Phase 2 → Phase 3 → Phase 4
 
 Phase 1:  T1 → T2 → T3 → T4 → T5
-Phase 2:  T6 → T7 → T8
+Phase 2:  T6 → T7 → T19 → T8
 Phase 3:  T9 → T10 → T11 → T12 → T13 → T14 → T15 → T16
 Phase 4:  T17 → T18
 ```
 
-Execution is strictly sequential. 18 tasks pack into 3 batches of whole phases: Phase 1 and 2 (8 tasks), Phase 3 (8 tasks), Phase 4 (2 tasks).
+Execution is strictly sequential. 19 tasks pack into 3 batches of whole phases: Phase 1 and 2 (9 tasks), Phase 3 (8 tasks), Phase 4 (2 tasks). T19 was added during Execute (the T8 worker found the test environment blocker).
 
 ---
 
@@ -650,7 +677,8 @@ Each task's `Depends on` is the previous task in its phase chain, or `None` for 
 | T5 | T4 | T4 → T5 | ✅ Match |
 | T6 | None | first of Phase 2 | ✅ Match |
 | T7 | T6 | T6 → T7 | ✅ Match |
-| T8 | T7 | T7 → T8 | ✅ Match |
+| T19 | T7 | T7 → T19 | ✅ Match |
+| T8 | T19 | T19 → T8 | ✅ Match |
 | T9 | None | first of Phase 3 | ✅ Match |
 | T10 | T9 | T9 → T10 | ✅ Match |
 | T11 | T10 | T10 → T11 | ✅ Match |
@@ -673,6 +701,7 @@ Each task's `Depends on` is the previous task in its phase chain, or `None` for 
 | T5 | Domain entity | unit | unit | ✅ OK |
 | T6 | SQL migration | none | none | ✅ OK |
 | T7 | JPA entity | none | none | ✅ OK |
+| T19 | Build configuration (`pom.xml`) | none | none | ✅ OK (verified by the Full gate; see its Done-when) |
 | T8 | Repository / persistence | integration | integration | ✅ OK |
 | T9 | Use case | unit | unit | ✅ OK |
 | T10 | Exception handler | unit | unit | ✅ OK |

@@ -188,6 +188,20 @@
                     </excludes>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Spring Boot manages Groovy 3.0.x; the explicit org.apache.groovy 4.0.16 above conflicts with it
+                         when a Spring context starts. Keep only the 4.x line on the test classpath. -->
+                    <classpathDependencyExcludes>
+                        <classpathDependencyExclude>org.codehaus.groovy:groovy</classpathDependencyExclude>
+                        <classpathDependencyExclude>org.codehaus.groovy:groovy-xml</classpathDependencyExclude>
+                    </classpathDependencyExcludes>
+                    <!-- Testcontainers 1.19.x (docker-java) fails against Docker Engine 29 unless the API version is pinned. -->
+                    <argLine>-Dapi.version=1.44</argLine>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
