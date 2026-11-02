@@ -317,7 +317,7 @@ T17 → T18
 
 **Done when**:
 
-- [ ] `WalletRepositoryIntegrationTest` (`@DataJpaTest`, `@AutoConfigureTestDatabase(replace = NONE)`, `@ActiveProfiles("test")`, `@Tag("docker")`) written with these cases:
+- [x] `WalletRepositoryIntegrationTest` (`@DataJpaTest`, `@AutoConfigureTestDatabase(replace = NONE)`, `@ActiveProfiles("test")`, `@Tag("docker")`) written with these cases:
   - Flyway applies V1 to V3 and Hibernate `validate` passes
   - Round trip of a wallet with all four holder fields
   - Round trip of a wallet without holder (`WalletHolder.empty()`)
@@ -326,12 +326,13 @@ T17 → T18
   - Several wallets without CPF are accepted
   - A raw insert with `cpf = '123'` is rejected by `ck_wallets_cpf_format`
   - A wallet row inserted without the new columns (legacy shape) is read with an empty holder
-- [ ] Quick gate still excludes this class: `"$MVN" -B -o test -DexcludedGroups=docker` passes
-- [ ] Gate check passes: `"$MVN" -B -o test` (Docker Desktop running)
-- [ ] Test count: previous total + >= 7 integration tests pass, no deletions
+- [x] Quick gate still excludes this class: `"$MVN" -B -o test -DexcludedGroups=docker` passes (214 run, 4 skipped)
+- [x] Gate check passes: `"$MVN" -B -o test` (Docker Desktop running)
+- [x] Test count: previous total + >= 7 integration tests pass, no deletions (222 run, 8 new, 0 failures, 4 skipped)
 
 **Tests**: integration
 **Gate**: full
+**Status**: ✅ Done
 
 **Commit**: `feat(wallet): persist holder data and add existsByCpf`
 
