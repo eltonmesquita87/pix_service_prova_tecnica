@@ -44,7 +44,7 @@ public class PixServiceSimulation extends Simulation {
 
     // ========== CONFIGURAÇÃO ==========
 
-    private static final String BASE_URL = System.getProperty("base.url", "http://localhost:8080");
+    private static final String BASE_URL = System.getProperty("base.url", "http://localhost:8090");
     private static final int USERS = Integer.parseInt(System.getProperty("users", "1000"));
     private static final int RAMPUP_DURATION = Integer.parseInt(System.getProperty("rampup.duration", "120"));
     private static final int TEST_DURATION = Integer.parseInt(System.getProperty("test.duration", "600"));

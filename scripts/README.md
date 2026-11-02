@@ -4,7 +4,47 @@ Este diretório contém scripts utilitários para gerenciar o banco de dados e f
 
 ## Scripts Disponíveis
 
-### 1. Truncate Database (Limpar Banco de Dados)
+### 1. Start Docker (Docker Compose local e distribuído)
+
+Automatiza o ciclo de vida do ambiente Docker: sobe, aguarda os serviços ficarem saudáveis, mostra os endpoints, e também para/reinicia/mostra status e logs.
+
+| Modo | Compose file | O que sobe |
+|------|--------------|------------|
+| `local` | `docker-compose.local.yml` | PostgreSQL + PgAdmin (a aplicação roda com `mvn spring-boot:run`) |
+| `distributed` | `docker-compose.distributed.yml` | PostgreSQL + N réplicas do Pix Service + NGINX (load balancer) |
+
+```bash
+# Linux/Mac/Git Bash
+./scripts/start-docker.sh <local|distributed> [start|stop|restart|status|logs] [opções]
+```
+```batch
+:: Windows
+scripts\start-docker.bat <local|distributed> [start|stop|restart|status|logs] [opcoes]
+```
+
+A ação padrão é `start`. Opções (modo `distributed`):
+
+| Opção | Descrição |
+|-------|-----------|
+| `--replicas N` | Número de réplicas do `pix-service` (padrão: 2) |
+| `--admin` | Inclui o PgAdmin (profile `admin`) |
+| `--monitoring` | Inclui Prometheus + Grafana (profile `monitoring`) — exige `monitoring/prometheus.yml` |
+| `--no-build` | Não reconstrói a imagem da aplicação |
+
+Exemplos:
+```bash
+./scripts/start-docker.sh local
+./scripts/start-docker.sh distributed --replicas 3 --admin
+./scripts/start-docker.sh distributed logs
+./scripts/start-docker.sh distributed stop
+```
+
+Observações:
+- `stop` remove os containers mas **preserva os volumes** (dados do PostgreSQL).
+- Os dois modos usam o container `pix-postgres` e a porta 5050; ao subir o `local` com o `distributed` ativo, o script derruba o `distributed` antes.
+- No modo `distributed` o script só conclui quando `http://localhost:8090/actuator/health` responde via NGINX (timeout de 4 min).
+
+### 2. Truncate Database (Limpar Banco de Dados)
 
 Scripts para limpar todas as tabelas do banco de dados, útil após testes de performance ou para resetar o ambiente.
 

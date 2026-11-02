@@ -75,9 +75,9 @@ REM ============================================================================
 echo [3/6] Iniciando aplicacao Spring Boot...
 echo ----------------------------------------------------------------------------
 
-REM Mata processos anteriores na porta 8080
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8080" ^| findstr "LISTENING"') do (
-    echo Matando processo na porta 8080: %%a
+REM Mata processos anteriores na porta 8090
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8090" ^| findstr "LISTENING"') do (
+    echo Matando processo na porta 8090: %%a
     taskkill /F /PID %%a >nul 2>&1
 )
 
@@ -92,7 +92,7 @@ set APP_RETRY_COUNT=0
 :wait_app
 set /a APP_RETRY_COUNT+=1
 
-curl -s http://localhost:8080/actuator/health >nul 2>&1
+curl -s http://localhost:8090/actuator/health >nul 2>&1
 
 if %ERRORLEVEL% equ 0 (
     echo [OK] Aplicacao esta pronta [tentativa %APP_RETRY_COUNT%/%APP_MAX_RETRIES%]

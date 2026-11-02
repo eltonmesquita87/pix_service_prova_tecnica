@@ -83,10 +83,10 @@ done
 echo -e "${BLUE}[3/6] Iniciando aplicação Spring Boot...${NC}"
 echo "----------------------------------------------------------------------------"
 
-# Mata processos anteriores na porta 8080
-if lsof -ti:8080 > /dev/null 2>&1; then
-    echo "Matando processo na porta 8080..."
-    kill -9 $(lsof -ti:8080) > /dev/null 2>&1 || true
+# Mata processos anteriores na porta 8090
+if lsof -ti:8090 > /dev/null 2>&1; then
+    echo "Matando processo na porta 8090..."
+    kill -9 $(lsof -ti:8090) > /dev/null 2>&1 || true
 fi
 
 # Cria diretório de logs se não existir
@@ -104,7 +104,7 @@ APP_RETRY_COUNT=0
 while [ $APP_RETRY_COUNT -lt $APP_MAX_RETRIES ]; do
     APP_RETRY_COUNT=$((APP_RETRY_COUNT + 1))
 
-    if curl -s http://localhost:8080/actuator/health > /dev/null 2>&1; then
+    if curl -s http://localhost:8090/actuator/health > /dev/null 2>&1; then
         echo -e "${GREEN}[OK] Aplicação está pronta [tentativa $APP_RETRY_COUNT/$APP_MAX_RETRIES]${NC}"
         echo ""
         break

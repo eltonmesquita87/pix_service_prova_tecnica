@@ -24,7 +24,6 @@ public class PixTransferRepositoryImpl implements PixTransferRepository {
         return toDomain(saved);
     }
 
-    @Override
     @Transactional(readOnly = true)
     public Optional<PixTransfer> findByEndToEndId(String endToEndId) {
         return jpaRepository.findByEndToEndId(endToEndId).map(this::toDomain);
