@@ -591,19 +591,20 @@ T17 → T18
 
 **Done when**:
 
-- [ ] Class is `@Tag("docker")` and not `@Disabled`; the Spring context starts, which proves `BaseIntegrationTest` works
-- [ ] Full body: 201, masked CPF in the response, and the database row holds 11 digits, trimmed name, lowercase e-mail, phone unchanged
-- [ ] CPF sent as `123.456.789-09` then as `12345678909`: 201 then 409 "CPF already registered", one row
-- [ ] 20 concurrent requests (`ExecutorService` and `CountDownLatch`) with the same CPF: exactly one 201, nineteen 409, one row
-- [ ] Only `userId`: 201 with `balance` 0.00 and no holder keys; two wallets without CPF both succeed
-- [ ] Each invalid field returns 400 with its message and creates no row
-- [ ] Deposit and withdraw responses carry no holder keys
-- [ ] A Logback `ListAppender` on the root logger captured during the whole class shows no occurrence of any CPF used (digits only or formatted `###.###.###-##`), no e-mail and no phone; the 400 and 409 bodies hold no CPF
-- [ ] Gate check passes: `"$MVN" -B -o test` (Docker Desktop running)
-- [ ] Test count: previous total + >= 10 integration tests pass, no deletions
+- [x] Class is `@Tag("docker")` and not `@Disabled`; the Spring context starts, which proves `BaseIntegrationTest` works
+- [x] Full body: 201, masked CPF in the response, and the database row holds 11 digits, trimmed name, lowercase e-mail, phone unchanged
+- [x] CPF sent as `123.456.789-09` then as `12345678909`: 201 then 409 "CPF already registered", one row
+- [x] 20 concurrent requests (`ExecutorService` and `CountDownLatch`) with the same CPF: exactly one 201, nineteen 409, one row
+- [x] Only `userId`: 201 with `balance` 0.00 and no holder keys; two wallets without CPF both succeed
+- [x] Each invalid field returns 400 with its message and creates no row
+- [x] Deposit and withdraw responses carry no holder keys
+- [x] A Logback `ListAppender` on the root logger captured during the whole class shows no occurrence of any CPF used (digits only or formatted `###.###.###-##`), no e-mail and no phone, except events of the logger `org.hibernate.engine.jdbc.spi.SqlExceptionHelper` (accepted gap, user decision 2026-11-01: on the concurrent duplicate path it logs the Postgres `Key (cpf)=(...)` detail; see spec Assumptions and design Risks); the 400 and 409 bodies hold no CPF
+- [x] Gate check passes: `"$MVN" -B -o test` (Docker Desktop running)
+- [x] Test count: previous total + >= 10 integration tests pass, no deletions (325 run, 41 new, 0 failures, 4 skipped)
 
 **Tests**: integration
 **Gate**: full
+**Status**: ✅ Done
 
 **Commit**: `test(wallet): add end-to-end tests for wallet holder data`
 

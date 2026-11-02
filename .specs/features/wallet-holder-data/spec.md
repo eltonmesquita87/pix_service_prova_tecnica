@@ -50,6 +50,7 @@ Toda ambiguidade está resolvida ou registrada aqui.
 | E-mail e telefone na resposta de criação | Devolvidos já normalizados, sem máscara | Decisão do usuário de mascarar só o CPF | n |
 | Linguagem das mensagens de erro | Inglês, como o restante da API | Consistência com `GlobalExceptionHandler` | n |
 | Carteiras existentes | Permanecem com os 4 campos nulos; nenhum backfill | Não há fonte para preencher | n |
+| Log do Hibernate no caminho de corrida de CPF duplicado | Risco aceito: o logger `org.hibernate.engine.jdbc.spi.SqlExceptionHelper` registra o `Detail` do Postgres (`Key (cpf)=(...)`) em ERROR quando o índice `uk_wallets_cpf` rejeita a segunda inserção concorrente. O WHOLD-18 vale para todo o resto | Descoberto pelo teste de logs do T17. Silenciar o logger desligaria os erros SQL de todo o serviço, e o usuário preferiu aceitar o vazamento e documentar. Follow-up recomendado: mascarar o CPF em log por filtro Logback ou desligar esse logger | y (usuário, 2026-11-01) |
 
 **Open questions:** none - all resolved or logged above.
 
@@ -117,7 +118,7 @@ Toda ambiguidade está resolvida ou registrada aqui.
 **Acceptance Criteria**:
 1. WHEN a carteira é criada com `cpf` THEN system SHALL devolver o CPF mascarado no formato `***.456.789-**` na resposta de `POST /wallets` (WHOLD-16)
 2. WHEN a carteira é criada THEN system SHALL devolver `nome`, `email` e `telefone` normalizados na resposta de `POST /wallets` (WHOLD-17)
-3. The system SHALL NOT escrever o CPF completo, o e-mail ou o telefone nos logs da aplicação, e o CPF só aparece mascarado (WHOLD-18)
+3. The system SHALL NOT escrever o CPF completo, o e-mail ou o telefone nos logs da aplicação, e o CPF só aparece mascarado, exceto no log do logger `org.hibernate.engine.jdbc.spi.SqlExceptionHelper` quando o índice `uk_wallets_cpf` rejeita uma inserção concorrente (risco aceito, ver Assumptions) (WHOLD-18)
 4. The system SHALL NOT incluir o valor do CPF em nenhuma mensagem de erro (WHOLD-19)
 5. The system SHALL NOT incluir campos do titular nas respostas de depósito e saque (WHOLD-20)
 
@@ -140,26 +141,26 @@ Cada requisito tem um ID único para rastrear design, tasks e validação.
 
 | Requirement ID | Story | Phase | Status |
 | -------------- | ----- | ----- | ------ |
-| WHOLD-01 | P1: Criar carteira com dados do titular | T4, T9, T15, T17 | Implementing |
-| WHOLD-02 | P1: Criar carteira com dados do titular | T1, T3, T10, T15, T17 | Implementing |
-| WHOLD-03 | P1: Criar carteira com dados do titular | T3, T4, T8, T17 | Implementing |
-| WHOLD-04 | P1: Criar carteira com dados do titular | T1, T4, T10, T17 | Implementing |
-| WHOLD-05 | P1: Criar carteira com dados do titular | T4, T17 | Implementing |
-| WHOLD-06 | P1: Criar carteira com dados do titular | T1, T4, T10, T17 | Implementing |
-| WHOLD-07 | P1: Criar carteira com dados do titular | T1, T4, T10, T17 | Implementing |
-| WHOLD-08 | P1: Criar carteira com dados do titular | T4, T17 | Implementing |
-| WHOLD-09 | P1: Criar carteira com dados do titular | T4, T10, T15, T17 | Implementing |
-| WHOLD-10 | P1: CPF único por carteira | T2, T8, T9, T10, T16, T17 | Implementing |
+| WHOLD-01 | P1: Criar carteira com dados do titular | T4, T9, T15, T17 | Verified |
+| WHOLD-02 | P1: Criar carteira com dados do titular | T1, T3, T10, T15, T17 | Verified |
+| WHOLD-03 | P1: Criar carteira com dados do titular | T3, T4, T8, T17 | Verified |
+| WHOLD-04 | P1: Criar carteira com dados do titular | T1, T4, T10, T17 | Verified |
+| WHOLD-05 | P1: Criar carteira com dados do titular | T4, T17 | Verified |
+| WHOLD-06 | P1: Criar carteira com dados do titular | T1, T4, T10, T17 | Verified |
+| WHOLD-07 | P1: Criar carteira com dados do titular | T1, T4, T10, T17 | Verified |
+| WHOLD-08 | P1: Criar carteira com dados do titular | T4, T17 | Verified |
+| WHOLD-09 | P1: Criar carteira com dados do titular | T4, T10, T15, T17 | Verified |
+| WHOLD-10 | P1: CPF único por carteira | T2, T8, T9, T10, T16, T17 | Verified |
 | WHOLD-11 | P1: CPF único por carteira | T6, T8, T10, T17 | Implementing |
-| WHOLD-12 | P1: CPF único por carteira | T6, T8, T17 | Implementing |
-| WHOLD-13 | P1: Compatibilidade com clientes atuais | T5, T9, T13, T15, T17 | Implementing |
-| WHOLD-14 | P1: Compatibilidade com clientes atuais | T13, T15, T17 | Implementing |
+| WHOLD-12 | P1: CPF único por carteira | T6, T8, T17 | Verified |
+| WHOLD-13 | P1: Compatibilidade com clientes atuais | T5, T9, T13, T15, T17 | Verified |
+| WHOLD-14 | P1: Compatibilidade com clientes atuais | T13, T15, T17 | Verified |
 | WHOLD-15 | P1: Compatibilidade com clientes atuais | T6, T7, T8, T17 | Implementing |
-| WHOLD-16 | P2: Proteção do CPF em resposta e logs | T3, T14, T15, T16, T17 | Implementing |
-| WHOLD-17 | P2: Proteção do CPF em resposta e logs | T14, T15, T17 | Implementing |
+| WHOLD-16 | P2: Proteção do CPF em resposta e logs | T3, T14, T15, T16, T17 | Verified |
+| WHOLD-17 | P2: Proteção do CPF em resposta e logs | T14, T15, T17 | Verified |
 | WHOLD-18 | P2: Proteção do CPF em resposta e logs | T3, T4, T5, T7, T9, T10, T17 | Implementing |
-| WHOLD-19 | P2: Proteção do CPF em resposta e logs | T1, T2, T10, T11, T17 | Implementing |
-| WHOLD-20 | P2: Proteção do CPF em resposta e logs | T14, T15, T17 | Implementing |
+| WHOLD-19 | P2: Proteção do CPF em resposta e logs | T1, T2, T10, T11, T17 | Verified |
+| WHOLD-20 | P2: Proteção do CPF em resposta e logs | T14, T15, T17 | Verified |
 
 **Coverage:** 20 total, 20 mapped to tasks, 0 unmapped
 
@@ -170,4 +171,4 @@ Cada requisito tem um ID único para rastrear design, tasks e validação.
 - [ ] Os 20 requisitos WHOLD-01 a WHOLD-20 têm teste que passa e referencia o ID.
 - [ ] A suíte existente (`CreateWalletUseCaseTest`, `WalletControllerIntegrationTest`, `WalletControllerRestAssuredTest`, `PixControllerRestAssuredTest`, `PixTransferEndToEndTest`) passa sem alteração de asserção.
 - [ ] 20 requisições concorrentes com o mesmo CPF produzem exatamente 1 carteira.
-- [ ] Nenhuma ocorrência do CPF completo nos logs nem nos corpos de erro durante a suíte de integração.
+- [ ] Nenhuma ocorrência do CPF completo nos logs nem nos corpos de erro durante a suíte de integração, exceto o log do `SqlExceptionHelper` no caminho de corrida (risco aceito).
