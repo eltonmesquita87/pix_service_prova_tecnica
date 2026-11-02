@@ -443,13 +443,14 @@ T17 → T18
 
 **Done when**:
 
-- [ ] `"abc"` deserializes to `abc`; JSON `null` gives `null`; `123`, `true`, `{}`, `[]` throw a `JsonMappingException`
-- [ ] `StrictStringDeserializerTest` written (>= 6 tests) using a real `ObjectMapper`
-- [ ] Gate check passes: `"$MVN" -B -o test -DexcludedGroups=docker`
-- [ ] Test count: previous total + >= 6 new tests pass, no deletions
+- [x] `"abc"` deserializes to `abc`; JSON `null` gives `null`; `123`, `true`, `{}`, `[]` throw a `JsonMappingException`
+- [x] `StrictStringDeserializerTest` written (>= 6 tests) using a real `ObjectMapper`
+- [x] Gate check passes: `"$MVN" -B -o test -DexcludedGroups=docker`
+- [x] Test count: previous total + >= 6 new tests pass, no deletions (241 run, 8 new, 4 skipped)
 
 **Tests**: unit
 **Gate**: quick
+**Status**: ✅ Done
 
 **Commit**: `feat(api): add StrictStringDeserializer`
 
