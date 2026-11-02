@@ -174,18 +174,19 @@ T17 → T18
 
 **Done when**:
 
-- [ ] All-null input gives an empty holder; any subset of valid fields is kept
-- [ ] E-mail: trimmed and lowercased on success; "Invalid email" for bad format, 255 chars (254 passes), blank
-- [ ] Phone: `+5511999999999` passes unchanged; "Invalid phone" for missing `+`, leading `+0`, 7 and 16 digits (8 and 15 pass), letters, leading space, blank
-- [ ] Name: trimmed on success; "Invalid name" for 1 char, 151 chars (2 and 150 pass), blank
-- [ ] Blank string in any of the four fields is invalid, `null` is absent (WHOLD-09)
-- [ ] CPF delegates to `Cpf.of`; `toString()` of a holder with all fields contains none of the CPF digits, e-mail, phone or name
-- [ ] `WalletHolderTest` written (>= 25 tests, each `@DisplayName` cites its WHOLD id)
-- [ ] Gate check passes: `"$MVN" -B -o test -DexcludedGroups=docker`
-- [ ] Test count: previous total + new tests pass, no deletions
+- [x] All-null input gives an empty holder; any subset of valid fields is kept
+- [x] E-mail: trimmed and lowercased on success; "Invalid email" for bad format, 255 chars (254 passes), blank
+- [x] Phone: `+5511999999999` passes unchanged; "Invalid phone" for missing `+`, leading `+0`, 7 and 16 digits (8 and 15 pass), letters, leading space, blank
+- [x] Name: trimmed on success; "Invalid name" for 1 char, 151 chars (2 and 150 pass), blank
+- [x] Blank string in any of the four fields is invalid, `null` is absent (WHOLD-09)
+- [x] CPF delegates to `Cpf.of`; `toString()` of a holder with all fields contains none of the CPF digits, e-mail, phone or name
+- [x] `WalletHolderTest` written (>= 25 tests, each `@DisplayName` cites its WHOLD id)
+- [x] Gate check passes: `"$MVN" -B -o test -DexcludedGroups=docker`
+- [x] Test count: previous total + new tests pass, no deletions
 
 **Tests**: unit
 **Gate**: quick
+**Status**: ✅ Done
 
 **Commit**: `feat(wallet): add WalletHolder value object`
 
