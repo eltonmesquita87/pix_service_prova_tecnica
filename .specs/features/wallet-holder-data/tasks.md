@@ -385,14 +385,15 @@ T17 → T18
 
 **Done when**:
 
-- [ ] `GlobalExceptionHandlerTest` written: each of the four `DadosTitularInvalidosException` factories gives 400 with its exact message and `error` "Bad Request"; `CpfJaCadastradoException` gives 409
-- [ ] A `DataIntegrityViolationException` whose message contains `uk_wallets_cpf` and `Key (cpf)=(12345678909)` gives 409 "CPF already registered"; the response body and every captured log event contain neither `12345678909` nor its masked form
-- [ ] A `DataIntegrityViolationException` for `uk_pix_key_value` and `uk_scope_key` keeps the current messages (regression)
-- [ ] Gate check passes: `"$MVN" -B -o test -DexcludedGroups=docker`
-- [ ] Test count: previous total + >= 8 new tests pass, no deletions
+- [x] `GlobalExceptionHandlerTest` written: each of the four `DadosTitularInvalidosException` factories gives 400 with its exact message and `error` "Bad Request"; `CpfJaCadastradoException` gives 409
+- [x] A `DataIntegrityViolationException` whose message contains `uk_wallets_cpf` and `Key (cpf)=(12345678909)` gives 409 "CPF already registered"; the response body and every captured log event contain neither `12345678909` nor its masked form
+- [x] A `DataIntegrityViolationException` for `uk_pix_key_value` and `uk_scope_key` keeps the current messages (regression)
+- [x] Gate check passes: `"$MVN" -B -o test -DexcludedGroups=docker`
+- [x] Test count: previous total + >= 8 new tests pass, no deletions (231 run, 11 new, 4 skipped)
 
 **Tests**: unit
 **Gate**: quick
+**Status**: ✅ Done
 
 **Commit**: `feat(wallet): map holder errors without leaking CPF`
 
