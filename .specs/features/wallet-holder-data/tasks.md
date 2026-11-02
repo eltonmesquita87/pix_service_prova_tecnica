@@ -263,12 +263,13 @@ T17 → T18
 
 **Done when**:
 
-- [ ] Fields `cpf`, `nome`, `email`, `telefone` mapped to columns of the same name, `toString()` excludes them
-- [ ] Gate check passes: `"$MVN" -B -o verify -DexcludedGroups=docker` (the `validate` check against the schema runs in T8)
-- [ ] Test count: previous total pass, no deletions
+- [x] Fields `cpf`, `nome`, `email`, `telefone` mapped to columns of the same name, `toString()` excludes them
+- [x] Gate check passes: `"$MVN" -B -o verify -DexcludedGroups=docker` (the `validate` check against the schema runs in T8)
+- [x] Test count: previous total pass, no deletions
 
 **Tests**: none
 **Gate**: build
+**Status**: ✅ Done
 
 **Commit**: `feat(wallet): map holder columns in WalletJpaEntity`
 
