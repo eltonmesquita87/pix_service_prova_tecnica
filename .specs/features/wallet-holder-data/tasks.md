@@ -353,17 +353,18 @@ T17 → T18
 
 **Done when**:
 
-- [ ] With a CPF that exists, throws `CpfJaCadastradoException` and `save` is never called
-- [ ] With a new CPF, saves a wallet whose holder equals the argument and balance zero, version 0
-- [ ] Without CPF, `existsByCpf` is never called
-- [ ] `execute(userId)` saves an empty holder
-- [ ] Logs never contain the CPF, e-mail or phone (asserted with a `ListAppender`)
-- [ ] New cases added to `CreateWalletUseCaseTest`; its 3 existing tests are unchanged and pass
-- [ ] Gate check passes: `"$MVN" -B -o test -DexcludedGroups=docker`
-- [ ] Test count: previous total + >= 5 new tests pass, no deletions
+- [x] With a CPF that exists, throws `CpfJaCadastradoException` and `save` is never called
+- [x] With a new CPF, saves a wallet whose holder equals the argument and balance zero, version 0
+- [x] Without CPF, `existsByCpf` is never called
+- [x] `execute(userId)` saves an empty holder
+- [x] Logs never contain the CPF, e-mail or phone (asserted with a `ListAppender`)
+- [x] New cases added to `CreateWalletUseCaseTest`; its 3 existing tests are unchanged and pass
+- [x] Gate check passes: `"$MVN" -B -o test -DexcludedGroups=docker`
+- [x] Test count: previous total + >= 5 new tests pass, no deletions (220 run, 6 new, 4 skipped)
 
 **Tests**: unit
 **Gate**: quick
+**Status**: ✅ Done
 
 **Commit**: `feat(wallet): accept holder data in CreateWalletUseCase`
 
