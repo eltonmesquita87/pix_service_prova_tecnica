@@ -564,12 +564,13 @@ T17 → T18
 
 **Done when**:
 
-- [ ] Annotations compile and the 409 response is listed for `createWallet`
-- [ ] Gate check passes: `"$MVN" -B -o verify -DexcludedGroups=docker`
-- [ ] Test count: previous total pass, no deletions
+- [x] Annotations compile and the 409 response is listed for `createWallet`
+- [x] Gate check passes: `"$MVN" -B -o verify -DexcludedGroups=docker`
+- [x] Test count: previous total pass, no deletions (276 run, 4 skipped)
 
 **Tests**: none
 **Gate**: build
+**Status**: ✅ Done
 
 **Commit**: `docs(api): document holder fields and 409 on create wallet`
 
