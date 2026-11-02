@@ -530,7 +530,7 @@ T17 → T18
 
 **Done when**:
 
-- [ ] `WalletControllerTest` written with `MockMvcBuilders.standaloneSetup(controller).setControllerAdvice(new GlobalExceptionHandler())` and mocked use cases:
+- [x] `WalletControllerTest` written with `MockMvcBuilders.standaloneSetup(controller).setControllerAdvice(new GlobalExceptionHandler())` and mocked use cases:
   - Full valid body: 201, `cpf` is `***.456.789-**`, `nome`, `email`, `telefone` normalized, `balance` 0
   - Only `userId`: 201 and no `cpf`/`nome`/`email`/`telefone` keys
   - Each invalid field (CPF, e-mail, phone, name, blank string in each): 400 with the exact message, use case never called
@@ -538,11 +538,12 @@ T17 → T18
   - `userId` empty: 400 "User ID is required"
   - `cpf` as JSON number: 400
   - Deposit and withdraw responses carry no holder keys
-- [ ] Gate check passes: `"$MVN" -B -o test -DexcludedGroups=docker`
-- [ ] Test count: previous total + >= 12 new tests pass, no deletions
+- [x] Gate check passes: `"$MVN" -B -o test -DexcludedGroups=docker`
+- [x] Test count: previous total + >= 12 new tests pass, no deletions (276 run, 20 new, 4 skipped)
 
 **Tests**: unit
 **Gate**: quick
+**Status**: ✅ Done
 
 **Commit**: `feat(wallet): create wallet with holder data`
 
