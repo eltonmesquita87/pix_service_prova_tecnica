@@ -17,6 +17,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.mock.http.MockHttpInputMessage;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import java.util.stream.Stream;
@@ -175,6 +177,45 @@ class GlobalExceptionHandlerTest {
         for (ILoggingEvent event : appender.list) {
             assertNoCpf(event);
         }
+    }
+
+    private HttpMessageNotReadableException unreadableBodyCarryingCpf() {
+        return new HttpMessageNotReadableException(
+                "JSON parse error: Cannot deserialize value of type `java.lang.String` from Integer value "
+                        + CPF_DIGITS + " (token `JsonToken.VALUE_NUMBER_INT`); nested exception is "
+                        + "com.fasterxml.jackson.databind.exc.MismatchedInputException: cpf=" + CPF_DIGITS,
+                new RuntimeException("cpf=" + CPF_DIGITS),
+                new MockHttpInputMessage(("{\"userId\":\"u\",\"cpf\":" + CPF_DIGITS + "}").getBytes()));
+    }
+
+    @Test
+    @DisplayName("Edge case (cpf with wrong JSON type): unreadable body gives 400 'Malformed request body' without the typed value")
+    void shouldMapUnreadableBodyTo400WithFixedMessage() {
+        HttpMessageNotReadableException exception = unreadableBodyCarryingCpf();
+        assertTrue(exception.getMessage().contains(CPF_DIGITS), "precondition: the raw exception carries the typed value");
+
+        ResponseEntity<ErrorResponse> response = handler.handleHttpMessageNotReadable(exception, request);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        ErrorResponse body = response.getBody();
+        assertNotNull(body);
+        assertEquals(400, body.getStatus());
+        assertEquals("Bad Request", body.getError());
+        assertEquals("Malformed request body", body.getMessage());
+        assertEquals("/wallets", body.getPath());
+        assertFalse(body.toString().contains(CPF_DIGITS));
+    }
+
+    @Test
+    @DisplayName("WHOLD-19: unreadable body logs contain neither the exception message nor a stack trace")
+    void shouldNotLogTypedValueForUnreadableBody() {
+        handler.handleHttpMessageNotReadable(unreadableBodyCarryingCpf(), request);
+
+        assertEquals(1, appender.list.size());
+        ILoggingEvent event = appender.list.get(0);
+        assertEquals("Malformed request body", event.getFormattedMessage());
+        assertNull(event.getThrowableProxy(), "no stack trace may be logged for an unreadable body");
+        assertNoCpf(event);
     }
 
     private void assertNoCpf(ILoggingEvent event) {

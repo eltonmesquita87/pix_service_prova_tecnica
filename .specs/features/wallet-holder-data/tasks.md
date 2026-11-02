@@ -414,14 +414,15 @@ T17 → T18
 
 **Done when**:
 
-- [ ] Handler returns 400, `error` "Bad Request", message "Malformed request body"
-- [ ] The exception message, which may carry the typed value, appears in neither the body nor the logs
-- [ ] Cases added to `GlobalExceptionHandlerTest`
-- [ ] Gate check passes: `"$MVN" -B -o test -DexcludedGroups=docker`
-- [ ] Test count: previous total + >= 2 new tests pass, no deletions
+- [x] Handler returns 400, `error` "Bad Request", message "Malformed request body"
+- [x] The exception message, which may carry the typed value, appears in neither the body nor the logs
+- [x] Cases added to `GlobalExceptionHandlerTest`
+- [x] Gate check passes: `"$MVN" -B -o test -DexcludedGroups=docker`
+- [x] Test count: previous total + >= 2 new tests pass, no deletions (233 run, 2 new, 4 skipped)
 
 **Tests**: unit
 **Gate**: quick
+**Status**: ✅ Done
 
 **Commit**: `fix(api): return 400 for unreadable request bodies`
 
