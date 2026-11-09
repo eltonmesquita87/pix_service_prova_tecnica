@@ -1,0 +1,3 @@
+$kind: collection
+description: "Depósito, saque e consulta de saldo. Ordem esperada: O1 → O6 → O9 (saldo 100 - 40 = 60)."
+order: 3000

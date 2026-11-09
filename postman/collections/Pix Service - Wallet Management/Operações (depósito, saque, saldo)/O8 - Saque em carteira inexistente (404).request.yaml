@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/wallets/999999999/withdraw"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "amount": 10.00
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 404', function () { pm.response.to.have.status(404); });
+      var json = pm.response.json();
+      pm.test('Envelope ErrorResponse', function () {
+        pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);
+        pm.expect(json.status).to.eql(404);
+        pm.expect(json.error).to.eql("Not Found");
+        pm.expect(json.message).to.eql("Wallet not found: 999999999");
+      });
+    language: text/javascript
+order: 8000

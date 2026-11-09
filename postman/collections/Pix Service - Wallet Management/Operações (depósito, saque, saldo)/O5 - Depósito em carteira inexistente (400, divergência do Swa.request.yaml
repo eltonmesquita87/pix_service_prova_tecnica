@@ -1,0 +1,26 @@
+$kind: http-request
+name: O5 - Depósito em carteira inexistente (400, divergência do Swagger)
+description: "Divergência: o Swagger documenta 404. O código responde 400, porque DepositUseCase lança IllegalArgumentException."
+url: "{{baseUrl}}/wallets/999999999/deposit"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "amount": 10.00
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 400', function () { pm.response.to.have.status(400); });
+      var json = pm.response.json();
+      pm.test('Envelope ErrorResponse', function () {
+        pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);
+        pm.expect(json.status).to.eql(400);
+        pm.expect(json.error).to.eql("Bad Request");
+        pm.expect(json.message).to.eql("Wallet not found: 999999999");
+      });
+    language: text/javascript
+order: 5000

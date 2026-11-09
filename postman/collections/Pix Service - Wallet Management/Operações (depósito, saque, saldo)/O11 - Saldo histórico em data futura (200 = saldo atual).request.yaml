@@ -1,0 +1,17 @@
+$kind: http-request
+description: Com "at" futuro, a soma inclui todos os lançamentos. Resultado igual ao saldo atual (60).
+url: "{{baseUrl}}/wallets/{{walletId}}/balance?at=2099-01-01T00:00:00"
+method: GET
+queryParams:
+  at: 2099-01-01T00:00:00
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 200', function () { pm.response.to.have.status(200); });
+      var json = pm.response.json();
+      pm.test('Saldo histórico futuro = saldo atual', function () {
+        pm.expect(json.balance).to.eql(60);
+        pm.expect(json.timestamp).to.match(/^2099-01-01T00:00/);
+      });
+    language: text/javascript
+order: 11000

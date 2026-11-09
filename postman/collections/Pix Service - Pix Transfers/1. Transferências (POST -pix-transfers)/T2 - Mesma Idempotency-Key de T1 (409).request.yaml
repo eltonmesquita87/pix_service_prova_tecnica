@@ -1,0 +1,31 @@
+$kind: http-request
+description: A chave já foi usada. O código devolve 409 "Duplicate request" e NÃO devolve a resposta original (a mensagem do README diz o contrário).
+url: "{{baseUrl}}/pix/transfers"
+method: POST
+headers:
+  Content-Type: application/json
+  Idempotency-Key: "{{idemKey}}"
+body:
+  type: json
+  content: |-
+    {
+      "fromWalletId": {{origemWalletId}},
+      "pixKey": "{{chavePixDestino}}",
+      "amount": 150.00
+    }
+scripts:
+  - type: beforeRequest
+    code: pm.environment.set('idemKey', pm.environment.get('idemKeyA'));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 409', function () { pm.response.to.have.status(409); });
+      var json = pm.response.json();
+      pm.test('Envelope ErrorResponse', function () {
+        pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);
+        pm.expect(json.status).to.eql(409);
+        pm.expect(json.error).to.eql("Conflict");
+        pm.expect(json.message).to.eql("Duplicate request");
+      });
+    language: text/javascript
+order: 2000

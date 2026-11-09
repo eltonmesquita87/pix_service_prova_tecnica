@@ -26,8 +26,8 @@ import java.util.stream.Collectors;
  * Provides automatic API documentation for all REST endpoints.
  *
  * Access the documentation at:
- * - Swagger UI: http://localhost:8090/swagger-ui/
- * - OpenAPI JSON: http://localhost:8090/v2/api-docs
+ * - Swagger UI: http://localhost:8089/swagger-ui/ (local run; behind NGINX use port 8090)
+ * - OpenAPI JSON: http://localhost:8089/v2/api-docs (local run; behind NGINX use port 8090)
  */
 @Configuration
 public class SwaggerConfig {

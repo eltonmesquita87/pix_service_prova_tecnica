@@ -1,0 +1,4 @@
+$kind: collection
+description: 'Interfaces de entrada do WalletController (/wallets), extraídas por engenharia reversa do código no commit a845be7. Execute a coleção em ordem, pelo Collection Runner: as requisições dependem de variáveis criadas antes (walletId, cpfTitular, chavePixEmail). Importe também local.postman_environment.json. As asserções seguem o comportamento do código. Onde o Swagger documenta outro código, a descrição da requisição indica a divergência. Itens marcados como "defeito conhecido" documentam o comportamento atual, que difere do esperado.'
+variables:
+  baseUrl: http://localhost:8089

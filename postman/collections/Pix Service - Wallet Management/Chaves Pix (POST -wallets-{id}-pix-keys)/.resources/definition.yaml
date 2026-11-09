@@ -1,0 +1,4 @@
+$kind: collection
+name: Chaves Pix (POST /wallets/{id}/pix-keys)
+description: Registro de chave Pix. Usa walletId definido em R1.
+order: 2000

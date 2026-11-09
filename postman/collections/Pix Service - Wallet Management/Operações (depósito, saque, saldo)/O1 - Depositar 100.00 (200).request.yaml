@@ -1,0 +1,24 @@
+$kind: http-request
+description: Credita o saldo e grava lançamento DEPOSIT. A resposta não traz dados do titular.
+url: "{{baseUrl}}/wallets/{{walletId}}/deposit"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "amount": 100.00
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 200', function () { pm.response.to.have.status(200); });
+      var json = pm.response.json();
+      pm.test('WalletResponse sem dados do titular', function () {
+        pm.expect(json.balance).to.eql(100);
+        pm.expect(json.id).to.eql(Number(pm.environment.get('walletId')));
+        pm.expect(json).to.not.have.property('cpf');
+      });
+    language: text/javascript
+order: 1000

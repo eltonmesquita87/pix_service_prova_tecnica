@@ -1,0 +1,55 @@
+$kind: http-request
+description: "Envia cpf, nome, email e telefone. O CPF é gerado válido a cada
+  execução (é único por carteira). Resposta: CPF mascarado (**\\*.456.789-**),
+  nome/e-mail/telefone normalizados. Define walletId."
+url: "{{baseUrl}}/wallets"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "userId": "usuario-{{$randomUUID}}",
+      "cpf": "{{cpfTitular}}",
+      "nome": "Elton P. Mesquita",
+      "email": "elton.silva@example.com",
+      "telefone": "+5511999999999"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      function gerarCpf() {
+        var d = [];
+        for (var i = 0; i < 9; i++) { d.push(Math.floor(Math.random() * 10)); }
+        var iguais = d.every(function (x) { return x === d[0]; });
+        if (iguais) { d[8] = (d[8] + 1) % 10; }
+        var dv = function (base) {
+          var soma = 0;
+          for (var k = 0; k < base.length; k++) { soma += base[k] * (base.length + 1 - k); }
+          var r = soma % 11;
+          return r < 2 ? 0 : 11 - r;
+        };
+        var d1 = dv(d);
+        var d2 = dv(d.concat([d1]));
+        return d.concat([d1, d2]).join("");
+      }
+      pm.environment.set('cpfTitular', gerarCpf());
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 201', function () { pm.response.to.have.status(201); });
+      var json = pm.response.json();
+      pm.test('Corpo WalletResponse com titular mascarado e normalizado', function () {
+        var cpf = pm.environment.get('cpfTitular');
+        pm.expect(json.id).to.be.a('number');
+        pm.expect(json.userId).to.match(/^usuario-/);
+        pm.expect(json.balance).to.eql(0);
+        pm.expect(json.cpf).to.eql('***.' + cpf.substr(3, 3) + '.' + cpf.substr(6, 3) + '-**');
+        pm.expect(json.nome).to.eql('Maria Silva');
+        pm.expect(json.email).to.eql('maria.silva@example.com');
+        pm.expect(json.telefone).to.eql('+5511999999999');
+      });
+      pm.environment.set('walletId', String(json.id));
+    language: text/javascript
+order: 2000

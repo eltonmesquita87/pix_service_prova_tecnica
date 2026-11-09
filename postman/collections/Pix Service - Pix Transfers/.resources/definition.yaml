@@ -1,0 +1,8 @@
+$kind: collection
+description: Interfaces de entrada do PixController (/pix/transfers e /pix/webhook), extraídas por engenharia reversa do código no commit a845be7. A pasta 0 cria o próprio cenário (carteiras, chaves e saldo), então a coleção roda sozinha. Execute em ordem. Importe também local.postman_environment.json. A coleção Wallet Management é independente desta. Idempotency-Key e eventId são gerados por execução. Itens marcados como "defeito conhecido" documentam o comportamento atual, que difere do esperado.
+variables:
+  baseUrl: http://localhost:8089
+scripts:
+  - type: http:beforeRequest
+    code: pm.environment.set('idemKey', 'idem-' + Date.now() + '-' + Math.floor(Math.random() * 1000000));
+    language: text/javascript

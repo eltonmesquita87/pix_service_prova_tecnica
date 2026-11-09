@@ -29,7 +29,7 @@
 
 | Aspecto | Contrato efetivo | Evidência |
 |---|---|---|
-| Porta | `8089` na aplicação. Swagger e README citam `8080` (D-10). | [application.yml#L42](../../src/main/resources/application.yml#L42) |
+| Porta | `8089` na execução local (`application.yml`). Em container, `8080` (`SERVER_PORT`). Atrás do NGINX distribuído, `8090`. README e javadoc do Swagger citam `8090` sem indicar o cenário (D-10). | [application.yml#L42](../../src/main/resources/application.yml#L42) |
 | Base path | `/wallets` e `/pix`, sem prefixo de versão. | [WalletController.java#L25](../../src/main/java/com/elton/pixservice/infrastructure/web/controller/WalletController.java#L25), [PixController.java#L25](../../src/main/java/com/elton/pixservice/infrastructure/web/controller/PixController.java#L25) |
 | Formato | JSON (`application/json`). Não há outro formato. | Controllers |
 | Datas | `LocalDateTime` em ISO-8601 sem fuso, por exemplo `2025-10-15T10:00:00`. A fração de segundos pode aparecer. `application.yml` não tem configuração de Jackson, então valem os padrões do Spring Boot. | [application.yml](../../src/main/resources/application.yml) (ausência de `jackson`) |
@@ -488,7 +488,7 @@ Content-Type: application/json
 | D-07 | A6 `POST /pix/transfers` | Header `Idempotency-Key` ausente | 400 (teste [PixControllerRestAssuredTest.java#L98](../../src/test/java/com/elton/pixservice/infrastructure/web/controller/PixControllerRestAssuredTest.java#L98), desabilitado) | 500 [HIPÓTESE] | [GlobalExceptionHandler.java#L270](../../src/main/java/com/elton/pixservice/infrastructure/exception/GlobalExceptionHandler.java#L270) | Novo |
 | D-08 | Todos os endpoints com corpo, path ou query | Corpo ausente ou malformado, enum inválido (`keyType`), tipo errado (`id`, `amount`, `at`), método HTTP não suportado | Não documentado como 400 | 500 [REF. EXTERNA] | [GlobalExceptionHandler.java#L270](../../src/main/java/com/elton/pixservice/infrastructure/exception/GlobalExceptionHandler.java#L270) | Novo |
 | D-09 | A7 `POST /pix/webhook` | `occurredAt` | Obrigatório no DTO e no exemplo do README | Lido, validado e descartado | [PixController.java#L61-L70](../../src/main/java/com/elton/pixservice/infrastructure/web/controller/PixController.java#L61-L70), [WebhookRequest.java#L24-L25](../../src/main/java/com/elton/pixservice/infrastructure/web/dto/WebhookRequest.java#L24-L25) | Novo (ligado a F8 em 01) |
-| D-10 | Toda a API | Porta | 8080 (Swagger e README) | 8089 | [application.yml#L42](../../src/main/resources/application.yml#L42), [SwaggerConfig.java#L29](../../src/main/java/com/elton/pixservice/infrastructure/config/SwaggerConfig.java#L29) | AC-11 |
+| D-10 | Toda a API | Porta | 8090 (README e javadoc do Swagger, sem indicar o cenário) | 8089 local; 8080 no container; 8090 via NGINX | [application.yml#L42](../../src/main/resources/application.yml#L42), [SwaggerConfig.java#L29](../../src/main/java/com/elton/pixservice/infrastructure/config/SwaggerConfig.java#L29) | AC-11 |
 
 **Causa comum de D-07 e D-08.** O `@ExceptionHandler(Exception.class)` do `GlobalExceptionHandler` captura as exceções do Spring MVC que não têm handler próprio, como `HttpMessageNotReadableException`, `MissingRequestHeaderException`, `MethodArgumentTypeMismatchException`, `HttpRequestMethodNotSupportedException` e `HttpMediaTypeNotSupportedException`. O resolver de `@ControllerAdvice` roda antes do resolver padrão do Spring, que é o único que daria 400 ou 405 [REF. EXTERNA]. Por isso, as respostas viram 500.
 

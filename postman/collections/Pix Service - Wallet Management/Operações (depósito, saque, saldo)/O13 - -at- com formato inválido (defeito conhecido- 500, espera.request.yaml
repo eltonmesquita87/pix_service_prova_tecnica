@@ -1,0 +1,20 @@
+$kind: http-request
+name: 'O13 - "at" com formato inválido (defeito conhecido: 500, esperado 400)'
+description: Defeito conhecido. Falha de conversão do @RequestParam vira MethodArgumentTypeMismatchException, sem handler próprio, então cai no handler genérico (500). O esperado seria 400.
+url: "{{baseUrl}}/wallets/{{walletId}}/balance?at=2025-10-15"
+method: GET
+queryParams:
+  at: 2025-10-15
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 500', function () { pm.response.to.have.status(500); });
+      var json = pm.response.json();
+      pm.test('Envelope ErrorResponse', function () {
+        pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);
+        pm.expect(json.status).to.eql(500);
+        pm.expect(json.error).to.eql("Internal Server Error");
+        pm.expect(json.message).to.eql("An unexpected error occurred");
+      });
+    language: text/javascript
+order: 13000

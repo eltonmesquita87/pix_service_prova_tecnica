@@ -1,0 +1,1506 @@
+{
+  "info": {
+    "_postman_id": "3acd4ed9-4ae8-f609-c452-54947135fe3f",
+    "name": "Pix Service - Pix Transfers",
+    "description": "Interfaces de entrada do PixController (/pix/transfers e /pix/webhook), extraídas por engenharia reversa do código no commit a845be7. A pasta 0 cria o próprio cenário (carteiras, chaves e saldo), então a coleção roda sozinha. Execute em ordem. Importe também local.postman_environment.json. A coleção Wallet Management é independente desta. Idempotency-Key e eventId são gerados por execução. Itens marcados como \"defeito conhecido\" documentam o comportamento atual, que difere do esperado.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8089",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Preparação (cria o cenário)",
+      "description": "Cria origem e destino com chaves EMAIL e saldo. Executar antes das transferências.",
+      "item": [
+        {
+          "name": "P1 - Criar carteira de origem (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets"
+              ]
+            },
+            "description": "Carteira sem titular. Define origemWalletId.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"origem-{{$randomUUID}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.environment.set('origemWalletId', String(json.id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "P2 - Registrar chave EMAIL da origem (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{origemWalletId}}/pix-keys",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{origemWalletId}}",
+                "pix-keys"
+              ]
+            },
+            "description": "Chave da origem. Usada no teste de transferência para a mesma carteira (T5).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyType\": \"EMAIL\",\n  \"keyValue\": \"{{chavePixOrigem}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('chavePixOrigem', 'origem.' + Date.now() + '@example.com');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "P3 - Depositar 500.00 na origem (200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{origemWalletId}}/deposit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{origemWalletId}}",
+                "deposit"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 500.00\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Saldo da origem = 500', function () { pm.expect(json.balance).to.eql(500); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "P4 - Criar carteira de destino (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"destino-{{$randomUUID}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.environment.set('destinoWalletId', String(json.id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "P5 - Registrar chave EMAIL do destino (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{destinoWalletId}}/pix-keys",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{destinoWalletId}}",
+                "pix-keys"
+              ]
+            },
+            "description": "Chave que o pagador informa em TransferPixRequest.pixKey.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyType\": \"EMAIL\",\n  \"keyValue\": \"{{chavePixDestino}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('chavePixDestino', 'destino.' + Date.now() + '@example.com');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Transferências (POST /pix/transfers)",
+      "description": "Cabeçalho Idempotency-Key obrigatório. Cada requisição gera uma chave nova, exceto T2, que reenvia a chave de T1.",
+      "item": [
+        {
+          "name": "T1 - Transferência de 150.00 (201, PENDING)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idemKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pix/transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pix",
+                "transfers"
+              ]
+            },
+            "description": "Debita a origem na hora e cria a transferência PENDING. O destino só é creditado no webhook CONFIRMED (W1). Define endToEndId.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromWalletId\": {{origemWalletId}},\n  \"pixKey\": \"{{chavePixDestino}}\",\n  \"amount\": 150.00\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.test('TransferPixResponse PENDING', function () {",
+                  "  pm.expect(json.endToEndId).to.match(/^E[0-9a-f]{32}$/);",
+                  "  pm.expect(json.fromWalletId).to.eql(Number(pm.environment.get('origemWalletId')));",
+                  "  pm.expect(json.toWalletId).to.eql(Number(pm.environment.get('destinoWalletId')));",
+                  "  pm.expect(json.amount).to.eql(150);",
+                  "  pm.expect(json.status).to.eql('PENDING');",
+                  "});",
+                  "pm.environment.set('endToEndId', json.endToEndId);",
+                  "pm.environment.set('idemKeyA', pm.environment.get('idemKey'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "T2 - Mesma Idempotency-Key de T1 (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idemKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pix/transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pix",
+                "transfers"
+              ]
+            },
+            "description": "A chave já foi usada. O código devolve 409 \"Duplicate request\" e NÃO devolve a resposta original (a mensagem do README diz o contrário).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromWalletId\": {{origemWalletId}},\n  \"pixKey\": \"{{chavePixDestino}}\",\n  \"amount\": 150.00\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('idemKey', pm.environment.get('idemKeyA'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', function () { pm.response.to.have.status(409); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(409);",
+                  "  pm.expect(json.error).to.eql(\"Conflict\");",
+                  "  pm.expect(json.message).to.eql(\"Duplicate request\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "T3 - Sem Idempotency-Key (defeito conhecido: 500, esperado 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pix/transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pix",
+                "transfers"
+              ]
+            },
+            "description": "Defeito conhecido. Header ausente gera MissingRequestHeaderException, sem handler próprio, então cai no genérico (500). Swagger e o teste desabilitado esperam 400.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromWalletId\": {{origemWalletId}},\n  \"pixKey\": \"{{chavePixDestino}}\",\n  \"amount\": 150.00\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 500', function () { pm.response.to.have.status(500); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(500);",
+                  "  pm.expect(json.error).to.eql(\"Internal Server Error\");",
+                  "  pm.expect(json.message).to.eql(\"An unexpected error occurred\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "T4 - Chave Pix inexistente (404, divergência do Swagger)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idemKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pix/transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pix",
+                "transfers"
+              ]
+            },
+            "description": "Divergência: o Swagger documenta 400. O código responde 404 (WalletNaoEncontradaException).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromWalletId\": {{origemWalletId}},\n  \"pixKey\": \"nao-existe@example.com\",\n  \"amount\": 10.00\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('idemKey', 'idem-' + Date.now() + '-' + Math.floor(Math.random() * 1000000));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', function () { pm.response.to.have.status(404); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(404);",
+                  "  pm.expect(json.error).to.eql(\"Not Found\");",
+                  "  pm.expect(json.message).to.eql(\"Pix key not found: nao-existe@example.com\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "T5 - Origem igual ao destino (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idemKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pix/transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pix",
+                "transfers"
+              ]
+            },
+            "description": "A chave pertence à própria origem.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromWalletId\": {{origemWalletId}},\n  \"pixKey\": \"{{chavePixOrigem}}\",\n  \"amount\": 10.00\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('idemKey', 'idem-' + Date.now() + '-' + Math.floor(Math.random() * 1000000));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Bad Request\");",
+                  "  pm.expect(json.message).to.eql(\"Cannot transfer to the same wallet\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "T6 - Carteira de origem inexistente (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idemKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pix/transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pix",
+                "transfers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromWalletId\": 999999999,\n  \"pixKey\": \"{{chavePixDestino}}\",\n  \"amount\": 10.00\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('idemKey', 'idem-' + Date.now() + '-' + Math.floor(Math.random() * 1000000));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', function () { pm.response.to.have.status(404); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(404);",
+                  "  pm.expect(json.error).to.eql(\"Not Found\");",
+                  "  pm.expect(json.message).to.eql(\"Source wallet not found: 999999999\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "T7 - Saldo insuficiente (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idemKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pix/transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pix",
+                "transfers"
+              ]
+            },
+            "description": "Divergência: o Swagger documenta 400. O código responde 409 (SaldoInsuficienteException).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromWalletId\": {{origemWalletId}},\n  \"pixKey\": \"{{chavePixDestino}}\",\n  \"amount\": 999999.00\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('idemKey', 'idem-' + Date.now() + '-' + Math.floor(Math.random() * 1000000));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', function () { pm.response.to.have.status(409); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(409);",
+                  "  pm.expect(json.error).to.eql(\"Conflict\");",
+                  "  pm.expect(json.message).to.eql(\"Insufficient balance\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "T8 - Valor zero (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idemKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pix/transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pix",
+                "transfers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromWalletId\": {{origemWalletId}},\n  \"pixKey\": \"{{chavePixDestino}}\",\n  \"amount\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('idemKey', 'idem-' + Date.now() + '-' + Math.floor(Math.random() * 1000000));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Validation Failed\");",
+                  "  pm.expect(json.message).to.eql(\"Amount must be greater than zero\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "T9 - fromWalletId ausente (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idemKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pix/transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pix",
+                "transfers"
+              ]
+            },
+            "description": "fromWalletId é @NotNull.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pixKey\": \"{{chavePixDestino}}\",\n  \"amount\": 10.00\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('idemKey', 'idem-' + Date.now() + '-' + Math.floor(Math.random() * 1000000));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Validation Failed\");",
+                  "  pm.expect(json.message).to.eql(\"From wallet ID is required\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "T10 - fromWalletId não numérico (400, corpo malformado)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idemKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pix/transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pix",
+                "transfers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromWalletId\": \"abc\",\n  \"pixKey\": \"{{chavePixDestino}}\",\n  \"amount\": 10.00\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('idemKey', 'idem-' + Date.now() + '-' + Math.floor(Math.random() * 1000000));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Bad Request\");",
+                  "  pm.expect(json.message).to.eql(\"Malformed request body\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "T11 - Segunda transferência de 100.00 (201, será rejeitada)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idemKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pix/transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pix",
+                "transfers"
+              ]
+            },
+            "description": "Cria uma transferência PENDING para testar estorno em W11. Define endToEndIdB.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromWalletId\": {{origemWalletId}},\n  \"pixKey\": \"{{chavePixDestino}}\",\n  \"amount\": 100.00\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('idemKey', 'idem-' + Date.now() + '-' + Math.floor(Math.random() * 1000000));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Transferência PENDING', function () { pm.expect(json.status).to.eql('PENDING'); });",
+                  "pm.environment.set('endToEndIdB', json.endToEndId);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Webhook (POST /pix/webhook)",
+      "description": "Confirmação e rejeição de transferências. Eventos são idempotentes por eventId. Saldos esperados: origem 500 → 350, destino 0 → 150.",
+      "item": [
+        {
+          "name": "W1 - CONFIRMED da transferência T1 (200, corpo vazio)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pix/webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pix",
+                "webhook"
+              ]
+            },
+            "description": "Credita o destino e grava TRANSFER_CREDIT. Define eventIdA para o reenvio W3.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"endToEndId\": \"{{endToEndId}}\",\n  \"eventId\": \"{{eventIdA}}\",\n  \"eventType\": \"CONFIRMED\",\n  \"occurredAt\": \"2026-11-09T10:30:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('eventIdA', 'evt-' + Date.now() + '-A');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Corpo vazio', function () { pm.expect(pm.response.text()).to.eql(''); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "W2 - Saldo do destino após CONFIRMED (200 = 150)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{destinoWalletId}}/balance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{destinoWalletId}}",
+                "balance"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Destino creditado em 150', function () { pm.expect(json.balance).to.eql(150); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "W3 - Reenvio do mesmo eventId (200, sem efeito)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pix/webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pix",
+                "webhook"
+              ]
+            },
+            "description": "Idempotência por eventId: a segunda entrega retorna 200 sem alterar o saldo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"endToEndId\": \"{{endToEndId}}\",\n  \"eventId\": \"{{eventIdA}}\",\n  \"eventType\": \"CONFIRMED\",\n  \"occurredAt\": \"2026-11-09T10:30:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "W4 - Saldo do destino após reenvio (200 = 150, sem crédito duplicado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{destinoWalletId}}/balance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{destinoWalletId}}",
+                "balance"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Sem crédito duplicado', function () { pm.expect(json.balance).to.eql(150); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "W5 - eventType desconhecido (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pix/webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pix",
+                "webhook"
+              ]
+            },
+            "description": "Só CONFIRMED e REJECTED são aceitos. Essa checagem ocorre depois de encontrar a transferência.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"endToEndId\": \"{{endToEndId}}\",\n  \"eventId\": \"evt-tipo-{{$guid}}\",\n  \"eventType\": \"PENDING\",\n  \"occurredAt\": \"2026-11-09T10:30:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Bad Request\");",
+                  "  pm.expect(json.message).to.eql(\"Unknown event type: PENDING\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "W6 - endToEndId inexistente (400, divergência do Swagger)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pix/webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pix",
+                "webhook"
+              ]
+            },
+            "description": "Divergência: o Swagger documenta 404. O código responde 400 (IllegalArgumentException).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"endToEndId\": \"E00000000000000000000000000000000\",\n  \"eventId\": \"evt-nao-encontrada-{{$guid}}\",\n  \"eventType\": \"CONFIRMED\",\n  \"occurredAt\": \"2026-11-09T10:30:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Bad Request\");",
+                  "  pm.expect(json.message.indexOf(\"Transfer not found: E\")).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "W7 - eventId ausente (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pix/webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pix",
+                "webhook"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"endToEndId\": \"{{endToEndId}}\",\n  \"eventType\": \"CONFIRMED\",\n  \"occurredAt\": \"2026-11-09T10:30:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Validation Failed\");",
+                  "  pm.expect(json.message).to.eql(\"Event ID is required\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "W8 - occurredAt ausente (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pix/webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pix",
+                "webhook"
+              ]
+            },
+            "description": "occurredAt é @NotNull, mas o caso de uso não o utiliza.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"endToEndId\": \"{{endToEndId}}\",\n  \"eventId\": \"evt-sem-data-{{$guid}}\",\n  \"eventType\": \"CONFIRMED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Validation Failed\");",
+                  "  pm.expect(json.message).to.eql(\"Occurred at is required\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "W9 - occurredAt em formato inválido (400, corpo malformado)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pix/webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pix",
+                "webhook"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"endToEndId\": \"{{endToEndId}}\",\n  \"eventId\": \"evt-data-ruim-{{$guid}}\",\n  \"eventType\": \"CONFIRMED\",\n  \"occurredAt\": \"09/11/2026 10:30\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Bad Request\");",
+                  "  pm.expect(json.message).to.eql(\"Malformed request body\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "W10 - REJECTED após CONFIRMED (200, transição inválida, sem efeito)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pix/webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pix",
+                "webhook"
+              ]
+            },
+            "description": "Divergência: o Swagger documenta 400. O código devolve 200 e ignora a transição inválida (ProcessWebhookUseCase). O evento fica registrado como processado.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"endToEndId\": \"{{endToEndId}}\",\n  \"eventId\": \"evt-rej-conf-{{$guid}}\",\n  \"eventType\": \"REJECTED\",\n  \"occurredAt\": \"2026-11-09T10:30:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "W11 - REJECTED da transferência T11 (200, estorno)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pix/webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pix",
+                "webhook"
+              ]
+            },
+            "description": "Transferência PENDING: estorna o valor para a origem e grava DEPOSIT \"Pix transfer rejected - refund\".",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"endToEndId\": \"{{endToEndIdB}}\",\n  \"eventId\": \"evt-rej-{{$guid}}\",\n  \"eventType\": \"REJECTED\",\n  \"occurredAt\": \"2026-11-09T10:30:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "W12 - Saldo da origem após estorno (200 = 350)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{origemWalletId}}/balance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{origemWalletId}}",
+                "balance"
+              ]
+            },
+            "description": "Origem: 500 - 150 (T1) - 100 (T11) + 100 (estorno de T11) = 350. W10 não alterou nada."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Origem = 350', function () { pm.expect(json.balance).to.eql(350); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "W13 - Saldo do destino inalterado (200 = 150)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{destinoWalletId}}/balance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{destinoWalletId}}",
+                "balance"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Destino = 150', function () { pm.expect(json.balance).to.eql(150); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.environment.set('idemKey', 'idem-' + Date.now() + '-' + Math.floor(Math.random() * 1000000));"
+        ]
+      }
+    }
+  ]
+}

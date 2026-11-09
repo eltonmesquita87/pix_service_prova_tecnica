@@ -1,0 +1,17 @@
+$kind: http-request
+description: Soma apenas os lançamentos com created_at anterior a "at". Antes da criação, o saldo é 0.
+url: "{{baseUrl}}/wallets/{{walletId}}/balance?at=2000-01-01T00:00:00"
+method: GET
+queryParams:
+  at: 2000-01-01T00:00:00
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 200', function () { pm.response.to.have.status(200); });
+      var json = pm.response.json();
+      pm.test('Saldo histórico = 0 antes da criação', function () {
+        pm.expect(json.balance).to.eql(0);
+        pm.expect(json.timestamp).to.match(/^2000-01-01T00:00/);
+      });
+    language: text/javascript
+order: 10000

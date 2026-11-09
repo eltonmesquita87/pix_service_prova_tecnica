@@ -1,0 +1,26 @@
+$kind: http-request
+description: Somente userId. Campos nulos não aparecem na resposta (NON_NULL).
+url: "{{baseUrl}}/wallets"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "userId": "sem-titular-{{$randomUUID}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 201', function () { pm.response.to.have.status(201); });
+      var json = pm.response.json();
+      pm.test('Sem campos de titular na resposta', function () {
+        pm.expect(json.balance).to.eql(0);
+        pm.expect(json).to.not.have.property('cpf');
+        pm.expect(json).to.not.have.property('nome');
+        pm.expect(json).to.not.have.property('email');
+        pm.expect(json).to.not.have.property('telefone');
+      });
+    language: text/javascript
+order: 4000

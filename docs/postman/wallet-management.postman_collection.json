@@ -1,0 +1,1699 @@
+{
+  "info": {
+    "_postman_id": "f0145fb1-660b-96fa-8219-5587168252b8",
+    "name": "Pix Service - Wallet Management",
+    "description": "Interfaces de entrada do WalletController (/wallets), extraídas por engenharia reversa do código no commit a845be7. Execute a coleção em ordem, pelo Collection Runner: as requisições dependem de variáveis criadas antes (walletId, cpfTitular, chavePixEmail). Importe também local.postman_environment.json. As asserções seguem o comportamento do código. Onde o Swagger documenta outro código, a descrição da requisição indica a divergência. Itens marcados como \"defeito conhecido\" documentam o comportamento atual, que difere do esperado.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8089",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Carteiras (POST /wallets)",
+      "description": "Criação de carteira. Os dados do titular são opcionais e validados no domínio. Execute em ordem: R2 depende de R1.",
+      "item": [
+        {
+          "name": "R1 - Criar carteira com titular completo (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets"
+              ]
+            },
+            "description": "Envia cpf, nome, email e telefone. O CPF é gerado válido a cada execução (é único por carteira). Resposta: CPF mascarado (***.456.789-**), nome/e-mail/telefone normalizados. Define walletId.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"usuario-{{$randomUUID}}\",\n  \"cpf\": \"{{cpfTitular}}\",\n  \"nome\": \"Maria Silva\",\n  \"email\": \"maria.silva@example.com\",\n  \"telefone\": \"+5511999999999\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function gerarCpf() {",
+                  "  var d = [];",
+                  "  for (var i = 0; i < 9; i++) { d.push(Math.floor(Math.random() * 10)); }",
+                  "  var iguais = d.every(function (x) { return x === d[0]; });",
+                  "  if (iguais) { d[8] = (d[8] + 1) % 10; }",
+                  "  var dv = function (base) {",
+                  "    var soma = 0;",
+                  "    for (var k = 0; k < base.length; k++) { soma += base[k] * (base.length + 1 - k); }",
+                  "    var r = soma % 11;",
+                  "    return r < 2 ? 0 : 11 - r;",
+                  "  };",
+                  "  var d1 = dv(d);",
+                  "  var d2 = dv(d.concat([d1]));",
+                  "  return d.concat([d1, d2]).join(\"\");",
+                  "}",
+                  "pm.environment.set('cpfTitular', gerarCpf());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Corpo WalletResponse com titular mascarado e normalizado', function () {",
+                  "  var cpf = pm.environment.get('cpfTitular');",
+                  "  pm.expect(json.id).to.be.a('number');",
+                  "  pm.expect(json.userId).to.match(/^usuario-/);",
+                  "  pm.expect(json.balance).to.eql(0);",
+                  "  pm.expect(json.cpf).to.eql('***.' + cpf.substr(3, 3) + '.' + cpf.substr(6, 3) + '-**');",
+                  "  pm.expect(json.nome).to.eql('Maria Silva');",
+                  "  pm.expect(json.email).to.eql('maria.silva@example.com');",
+                  "  pm.expect(json.telefone).to.eql('+5511999999999');",
+                  "});",
+                  "pm.environment.set('walletId', String(json.id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R2 - CPF já cadastrado (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets"
+              ]
+            },
+            "description": "Reutiliza o CPF de R1. Swagger documenta 409 \"CPF já cadastrado\", igual ao código (CreateWalletUseCase).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"duplicado-{{$randomUUID}}\",\n  \"cpf\": \"{{cpfTitular}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', function () { pm.response.to.have.status(409); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(409);",
+                  "  pm.expect(json.error).to.eql(\"Conflict\");",
+                  "  pm.expect(json.message).to.eql(\"CPF already registered\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R3 - Criar carteira sem dados do titular (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets"
+              ]
+            },
+            "description": "Somente userId. Campos nulos não aparecem na resposta (NON_NULL).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"sem-titular-{{$randomUUID}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Sem campos de titular na resposta', function () {",
+                  "  pm.expect(json.balance).to.eql(0);",
+                  "  pm.expect(json).to.not.have.property('cpf');",
+                  "  pm.expect(json).to.not.have.property('nome');",
+                  "  pm.expect(json).to.not.have.property('email');",
+                  "  pm.expect(json).to.not.have.property('telefone');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R4 - Normaliza nome (trim) e e-mail (trim + minúsculas) (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets"
+              ]
+            },
+            "description": "WalletHolder.normalizeNome faz trim; normalizeEmail faz trim e toLowerCase(Locale.ROOT).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"normaliza-{{$randomUUID}}\",\n  \"cpf\": \"{{cpfTitular}}\",\n  \"nome\": \"   Maria Silva   \",\n  \"email\": \"  Maria.Silva@EXAMPLE.com  \"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function gerarCpf() {",
+                  "  var d = [];",
+                  "  for (var i = 0; i < 9; i++) { d.push(Math.floor(Math.random() * 10)); }",
+                  "  var iguais = d.every(function (x) { return x === d[0]; });",
+                  "  if (iguais) { d[8] = (d[8] + 1) % 10; }",
+                  "  var dv = function (base) {",
+                  "    var soma = 0;",
+                  "    for (var k = 0; k < base.length; k++) { soma += base[k] * (base.length + 1 - k); }",
+                  "    var r = soma % 11;",
+                  "    return r < 2 ? 0 : 11 - r;",
+                  "  };",
+                  "  var d1 = dv(d);",
+                  "  var d2 = dv(d.concat([d1]));",
+                  "  return d.concat([d1, d2]).join(\"\");",
+                  "}",
+                  "pm.environment.set('cpfTitular', gerarCpf());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Nome e e-mail normalizados', function () {",
+                  "  pm.expect(json.nome).to.eql('Maria Silva');",
+                  "  pm.expect(json.email).to.eql('maria.silva@example.com');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R5 - CPF com dígito verificador inválido (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets"
+              ]
+            },
+            "description": "Cpf.of valida os dois dígitos verificadores. \"123.456.789-00\" tem DV incorreto.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"cpf-invalido-{{$randomUUID}}\",\n  \"cpf\": \"123.456.789-00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Bad Request\");",
+                  "  pm.expect(json.message).to.eql(\"Invalid CPF\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R6 - CPF com todos os dígitos iguais (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets"
+              ]
+            },
+            "description": "Cpf.of rejeita sequências de dígitos iguais, mesmo com DV \"válido\".",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"cpf-iguais-{{$randomUUID}}\",\n  \"cpf\": \"111.111.111-11\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Bad Request\");",
+                  "  pm.expect(json.message).to.eql(\"Invalid CPF\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R7 - Telefone sem \"+\" (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets"
+              ]
+            },
+            "description": "Telefone precisa estar em E.164: \"+\" seguido de 8 a 15 dígitos, primeiro diferente de 0.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"tel-invalido-{{$randomUUID}}\",\n  \"telefone\": \"11999999999\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Bad Request\");",
+                  "  pm.expect(json.message).to.eql(\"Invalid phone\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R8 - Nome com 1 caractere (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets"
+              ]
+            },
+            "description": "Nome: de 2 a 150 caracteres após trim.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"nome-curto-{{$randomUUID}}\",\n  \"nome\": \"A\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Bad Request\");",
+                  "  pm.expect(json.message).to.eql(\"Invalid name\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R9 - E-mail inválido (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets"
+              ]
+            },
+            "description": "E-mail: regex do domínio, até 254 caracteres.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"email-invalido-{{$randomUUID}}\",\n  \"email\": \"maria@\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Bad Request\");",
+                  "  pm.expect(json.message).to.eql(\"Invalid email\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R10 - CPF enviado como número (400, corpo malformado)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets"
+              ]
+            },
+            "description": "StrictStringDeserializer recusa token que não seja string JSON. Vira HttpMessageNotReadableException, mapeada para 400 \"Malformed request body\".",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"cpf-numero-{{$randomUUID}}\",\n  \"cpf\": 12345678909\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Bad Request\");",
+                  "  pm.expect(json.message).to.eql(\"Malformed request body\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R11 - userId ausente (400, validação)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets"
+              ]
+            },
+            "description": "userId é @NotBlank. Depende de @Valid declarado na interface WalletControllerApi.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Validation Failed\");",
+                  "  pm.expect(json.message).to.eql(\"User ID is required\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Chaves Pix (POST /wallets/{id}/pix-keys)",
+      "description": "Registro de chave Pix. Usa walletId definido em R1.",
+      "item": [
+        {
+          "name": "K1 - Registrar chave EMAIL (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{walletId}}/pix-keys",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{walletId}}",
+                "pix-keys"
+              ]
+            },
+            "description": "Chave EMAIL única por execução. A chave não é normalizada.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyType\": \"EMAIL\",\n  \"keyValue\": \"{{chavePixEmail}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('chavePixEmail', 'pix.' + Date.now() + '@example.com');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.test('PixKeyResponse', function () {",
+                  "  pm.expect(json.id).to.be.a(\"number\");",
+                  "  pm.expect(json.walletId).to.eql(Number(pm.environment.get('walletId')));",
+                  "  pm.expect(json.keyType).to.eql('EMAIL');",
+                  "  pm.expect(json.keyValue).to.eql(pm.environment.get('chavePixEmail'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "K2 - Registrar chave CPF (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{walletId}}/pix-keys",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{walletId}}",
+                "pix-keys"
+              ]
+            },
+            "description": "Para CPF como chave Pix, PixKey.validate só exige 11 dígitos (não confere o DV).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyType\": \"CPF\",\n  \"keyValue\": \"{{chavePixCpf}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function gerarCpf() {",
+                  "  var d = [];",
+                  "  for (var i = 0; i < 9; i++) { d.push(Math.floor(Math.random() * 10)); }",
+                  "  var iguais = d.every(function (x) { return x === d[0]; });",
+                  "  if (iguais) { d[8] = (d[8] + 1) % 10; }",
+                  "  var dv = function (base) {",
+                  "    var soma = 0;",
+                  "    for (var k = 0; k < base.length; k++) { soma += base[k] * (base.length + 1 - k); }",
+                  "    var r = soma % 11;",
+                  "    return r < 2 ? 0 : 11 - r;",
+                  "  };",
+                  "  var d1 = dv(d);",
+                  "  var d2 = dv(d.concat([d1]));",
+                  "  return d.concat([d1, d2]).join(\"\");",
+                  "}",
+                  "pm.environment.set('chavePixCpf', gerarCpf());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Tipo CPF', function () { pm.expect(json.keyType).to.eql('CPF'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "K3 - Registrar chave PHONE (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{walletId}}/pix-keys",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{walletId}}",
+                "pix-keys"
+              ]
+            },
+            "description": "Para PHONE como chave Pix, PixKey.validate conta 10 a 11 dígitos após remover não dígitos. Não aceita o formato +55 do titular (E.164, 13 dígitos).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyType\": \"PHONE\",\n  \"keyValue\": \"{{chavePixPhone}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('chavePixPhone', '11' + String(Date.now()).slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Tipo PHONE', function () { pm.expect(json.keyType).to.eql('PHONE'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "K4 - Registrar chave EVP (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{walletId}}/pix-keys",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{walletId}}",
+                "pix-keys"
+              ]
+            },
+            "description": "EVP precisa ter exatamente 36 caracteres. {{$guid}} gera um UUID de 36 caracteres.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyType\": \"EVP\",\n  \"keyValue\": \"{{$guid}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Tipo EVP com 36 caracteres', function () {",
+                  "  pm.expect(json.keyType).to.eql('EVP');",
+                  "  pm.expect(json.keyValue.length).to.eql(36);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "K5 - Chave EMAIL já registrada (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{walletId}}/pix-keys",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{walletId}}",
+                "pix-keys"
+              ]
+            },
+            "description": "Repete a chave de K1. A checagem de duplicidade acontece antes da validação de formato.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyType\": \"EMAIL\",\n  \"keyValue\": \"{{chavePixEmail}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', function () { pm.response.to.have.status(409); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(409);",
+                  "  pm.expect(json.error).to.eql(\"Conflict\");",
+                  "  pm.expect(json.message.indexOf(\"Pix key already registered: \")).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "K6 - E-mail de chave com formato inválido (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{walletId}}/pix-keys",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{walletId}}",
+                "pix-keys"
+              ]
+            },
+            "description": "Valor \"abc\" não passa na regex de EMAIL.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyType\": \"EMAIL\",\n  \"keyValue\": \"abc\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Bad Request\");",
+                  "  pm.expect(json.message).to.eql(\"Invalid email format: abc\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "K7 - Tipo de chave desconhecido (400, corpo malformado)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{walletId}}/pix-keys",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{walletId}}",
+                "pix-keys"
+              ]
+            },
+            "description": "keyType é enum (CPF, EMAIL, PHONE, EVP). Valor fora do enum falha na desserialização e vira 400 \"Malformed request body\".",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyType\": \"CNPJ\",\n  \"keyValue\": \"12345678000195\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Bad Request\");",
+                  "  pm.expect(json.message).to.eql(\"Malformed request body\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "K8 - Carteira inexistente (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/999999999/pix-keys",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "999999999",
+                "pix-keys"
+              ]
+            },
+            "description": "A existência da carteira é checada antes da duplicidade e do formato.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyType\": \"EMAIL\",\n  \"keyValue\": \"nao.existe@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', function () { pm.response.to.have.status(404); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(404);",
+                  "  pm.expect(json.error).to.eql(\"Not Found\");",
+                  "  pm.expect(json.message).to.eql(\"Wallet not found: 999999999\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Operações (depósito, saque, saldo)",
+      "description": "Depósito, saque e consulta de saldo. Ordem esperada: O1 → O6 → O9 (saldo 100 - 40 = 60).",
+      "item": [
+        {
+          "name": "O1 - Depositar 100.00 (200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{walletId}}/deposit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{walletId}}",
+                "deposit"
+              ]
+            },
+            "description": "Credita o saldo e grava lançamento DEPOSIT. A resposta não traz dados do titular.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100.00\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('WalletResponse sem dados do titular', function () {",
+                  "  pm.expect(json.balance).to.eql(100);",
+                  "  pm.expect(json.id).to.eql(Number(pm.environment.get('walletId')));",
+                  "  pm.expect(json).to.not.have.property('cpf');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "O2 - Depósito com valor zero (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{walletId}}/deposit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{walletId}}",
+                "deposit"
+              ]
+            },
+            "description": "DecimalMin 0.01.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Validation Failed\");",
+                  "  pm.expect(json.message).to.eql(\"Amount must be greater than zero\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "O3 - Depósito com valor negativo (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{walletId}}/deposit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{walletId}}",
+                "deposit"
+              ]
+            },
+            "description": "DecimalMin 0.01.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": -10.00\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Validation Failed\");",
+                  "  pm.expect(json.message).to.eql(\"Amount must be greater than zero\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "O4 - Depósito sem valor (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{walletId}}/deposit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{walletId}}",
+                "deposit"
+              ]
+            },
+            "description": "amount é @NotNull.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Validation Failed\");",
+                  "  pm.expect(json.message).to.eql(\"Amount is required\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "O5 - Depósito em carteira inexistente (400, divergência do Swagger)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/999999999/deposit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "999999999",
+                "deposit"
+              ]
+            },
+            "description": "Divergência: o Swagger documenta 404. O código responde 400, porque DepositUseCase lança IllegalArgumentException.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 10.00\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(400);",
+                  "  pm.expect(json.error).to.eql(\"Bad Request\");",
+                  "  pm.expect(json.message).to.eql(\"Wallet not found: 999999999\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "O6 - Sacar 40.00 (200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{walletId}}/withdraw",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{walletId}}",
+                "withdraw"
+              ]
+            },
+            "description": "Debita o saldo e grava lançamento WITHDRAW.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 40.00\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Saldo após saque = 60', function () { pm.expect(json.balance).to.eql(60); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "O7 - Saque acima do saldo (409, divergência do Swagger)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{walletId}}/withdraw",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{walletId}}",
+                "withdraw"
+              ]
+            },
+            "description": "Divergência: o Swagger documenta 400 (\"Valor inválido ou saldo insuficiente\"). O código responde 409 (SaldoInsuficienteException).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1000.00\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', function () { pm.response.to.have.status(409); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(409);",
+                  "  pm.expect(json.error).to.eql(\"Conflict\");",
+                  "  pm.expect(json.message.indexOf(\"Insufficient balance\")).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "O8 - Saque em carteira inexistente (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/999999999/withdraw",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "999999999",
+                "withdraw"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 10.00\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', function () { pm.response.to.have.status(404); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(404);",
+                  "  pm.expect(json.error).to.eql(\"Not Found\");",
+                  "  pm.expect(json.message).to.eql(\"Wallet not found: 999999999\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "O9 - Consultar saldo atual (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{walletId}}/balance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{walletId}}",
+                "balance"
+              ]
+            },
+            "description": "Sem \"at\", lê wallets.balance. Espera 60 (depósito 100 menos saque 40)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('BalanceResponse atual', function () {",
+                  "  pm.expect(json.walletId).to.eql(Number(pm.environment.get('walletId')));",
+                  "  pm.expect(json.balance).to.eql(60);",
+                  "  pm.expect(json.timestamp).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "O10 - Saldo histórico antes de qualquer lançamento (200 = 0)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{walletId}}/balance?at=2000-01-01T00:00:00",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{walletId}}",
+                "balance"
+              ],
+              "query": [
+                {
+                  "key": "at",
+                  "value": "2000-01-01T00:00:00"
+                }
+              ]
+            },
+            "description": "Soma apenas os lançamentos com created_at anterior a \"at\". Antes da criação, o saldo é 0."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Saldo histórico = 0 antes da criação', function () {",
+                  "  pm.expect(json.balance).to.eql(0);",
+                  "  pm.expect(json.timestamp).to.match(/^2000-01-01T00:00/);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "O11 - Saldo histórico em data futura (200 = saldo atual)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{walletId}}/balance?at=2099-01-01T00:00:00",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{walletId}}",
+                "balance"
+              ],
+              "query": [
+                {
+                  "key": "at",
+                  "value": "2099-01-01T00:00:00"
+                }
+              ]
+            },
+            "description": "Com \"at\" futuro, a soma inclui todos os lançamentos. Resultado igual ao saldo atual (60)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Saldo histórico futuro = saldo atual', function () {",
+                  "  pm.expect(json.balance).to.eql(60);",
+                  "  pm.expect(json.timestamp).to.match(/^2099-01-01T00:00/);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "O12 - Consultar saldo de carteira inexistente (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/999999999/balance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "999999999",
+                "balance"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', function () { pm.response.to.have.status(404); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(404);",
+                  "  pm.expect(json.error).to.eql(\"Not Found\");",
+                  "  pm.expect(json.message).to.eql(\"Wallet not found: 999999999\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "O13 - \"at\" com formato inválido (defeito conhecido: 500, esperado 400)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/{{walletId}}/balance?at=2025-10-15",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "{{walletId}}",
+                "balance"
+              ],
+              "query": [
+                {
+                  "key": "at",
+                  "value": "2025-10-15"
+                }
+              ]
+            },
+            "description": "Defeito conhecido. Falha de conversão do @RequestParam vira MethodArgumentTypeMismatchException, sem handler próprio, então cai no handler genérico (500). O esperado seria 400."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 500', function () { pm.response.to.have.status(500); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(500);",
+                  "  pm.expect(json.error).to.eql(\"Internal Server Error\");",
+                  "  pm.expect(json.message).to.eql(\"An unexpected error occurred\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "O14 - ID não numérico na URL (defeito conhecido: 500, esperado 400)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/wallets/abc/balance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "wallets",
+                "abc",
+                "balance"
+              ]
+            },
+            "description": "Defeito conhecido. Falha de conversão do @PathVariable Long cai no handler genérico (500). O esperado seria 400."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 500', function () { pm.response.to.have.status(500); });",
+                  "var json = pm.response.json();",
+                  "pm.test('Envelope ErrorResponse', function () {",
+                  "  pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);",
+                  "  pm.expect(json.status).to.eql(500);",
+                  "  pm.expect(json.error).to.eql(\"Internal Server Error\");",
+                  "  pm.expect(json.message).to.eql(\"An unexpected error occurred\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

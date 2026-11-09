@@ -1,0 +1,20 @@
+$kind: http-request
+description: 'Transferência PENDING: estorna o valor para a origem e grava DEPOSIT "Pix transfer rejected - refund".'
+url: "{{baseUrl}}/pix/webhook"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "endToEndId": "{{endToEndIdB}}",
+      "eventId": "evt-rej-{{$guid}}",
+      "eventType": "REJECTED",
+      "occurredAt": "2026-11-09T10:30:00"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('HTTP 200', function () { pm.response.to.have.status(200); });
+    language: text/javascript
+order: 11000

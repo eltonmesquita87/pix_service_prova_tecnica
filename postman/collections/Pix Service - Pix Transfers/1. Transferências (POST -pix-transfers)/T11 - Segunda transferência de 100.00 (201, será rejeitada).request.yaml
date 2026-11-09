@@ -1,0 +1,27 @@
+$kind: http-request
+description: Cria uma transferência PENDING para testar estorno em W11. Define endToEndIdB.
+url: "{{baseUrl}}/pix/transfers"
+method: POST
+headers:
+  Content-Type: application/json
+  Idempotency-Key: "{{idemKey}}"
+body:
+  type: json
+  content: |-
+    {
+      "fromWalletId": {{origemWalletId}},
+      "pixKey": "{{chavePixDestino}}",
+      "amount": 100.00
+    }
+scripts:
+  - type: beforeRequest
+    code: pm.environment.set('idemKey', 'idem-' + Date.now() + '-' + Math.floor(Math.random() * 1000000));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 201', function () { pm.response.to.have.status(201); });
+      var json = pm.response.json();
+      pm.test('Transferência PENDING', function () { pm.expect(json.status).to.eql('PENDING'); });
+      pm.environment.set('endToEndIdB', json.endToEndId);
+    language: text/javascript
+order: 11000

@@ -94,7 +94,7 @@ services:
 
       # JPA/Hibernate
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
-      SPRING_JPA_SHOW_SQL: falsequ
+      SPRING_JPA_SHOW_SQL: true
       SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: false
 
       # Logging
