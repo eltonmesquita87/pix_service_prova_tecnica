@@ -1,0 +1,3 @@
+$kind: collection
+description: Cria origem e destino com chaves EMAIL e saldo. Executar antes das transferências.
+order: 1000

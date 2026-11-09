@@ -11,7 +11,7 @@ echo Verificando container PostgreSQL...
 docker ps --filter "name=pix-postgres" --format "{{.Names}}" > nul 2>&1
 if %errorlevel% neq 0 (
     echo ERRO: Container PostgreSQL nao esta rodando!
-    echo Execute: docker-compose up -d
+    echo Execute: docker-compose -f docker-compose.local.yml up -d
     exit /b 1
 )
 

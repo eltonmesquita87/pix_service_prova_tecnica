@@ -1,0 +1,28 @@
+$kind: http-request
+description: "Divergência: o Swagger documenta 404. O código responde 400 (IllegalArgumentException)."
+url: "{{baseUrl}}/pix/webhook"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "endToEndId": "E00000000000000000000000000000000",
+      "eventId": "evt-nao-encontrada-{{$guid}}",
+      "eventType": "CONFIRMED",
+      "occurredAt": "2026-11-09T10:30:00"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 400', function () { pm.response.to.have.status(400); });
+      var json = pm.response.json();
+      pm.test('Envelope ErrorResponse', function () {
+        pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);
+        pm.expect(json.status).to.eql(400);
+        pm.expect(json.error).to.eql("Bad Request");
+        pm.expect(json.message.indexOf("Transfer not found: E")).to.eql(0);
+      });
+    language: text/javascript
+order: 6000

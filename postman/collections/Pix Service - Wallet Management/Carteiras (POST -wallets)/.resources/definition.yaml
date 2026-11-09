@@ -1,0 +1,4 @@
+$kind: collection
+name: Carteiras (POST /wallets)
+description: "Criação de carteira. Os dados do titular são opcionais e validados no domínio. Execute em ordem: R2 depende de R1."
+order: 1000

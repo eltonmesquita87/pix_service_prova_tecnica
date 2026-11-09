@@ -173,7 +173,7 @@ SELECT 'webhook_events', COUNT(*) FROM webhook_events;
 
 **Solução**: Inicie o container:
 ```bash
-docker-compose up -d
+docker-compose -f docker-compose.local.yml up -d
 ```
 
 ### Erro: "permission denied"

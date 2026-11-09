@@ -1,0 +1,24 @@
+$kind: http-request
+description: EVP precisa ter exatamente 36 caracteres. {{$guid}} gera um UUID de 36 caracteres.
+url: "{{baseUrl}}/wallets/{{walletId}}/pix-keys"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "keyType": "EVP",
+      "keyValue": "{{$guid}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 201', function () { pm.response.to.have.status(201); });
+      var json = pm.response.json();
+      pm.test('Tipo EVP com 36 caracteres', function () {
+        pm.expect(json.keyType).to.eql('EVP');
+        pm.expect(json.keyValue.length).to.eql(36);
+      });
+    language: text/javascript
+order: 4000

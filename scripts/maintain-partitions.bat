@@ -21,7 +21,7 @@ docker exec pix-postgres pg_isready -U pixuser -d pixdb >nul 2>&1
 
 if %ERRORLEVEL% neq 0 (
     echo [ERRO] PostgreSQL nao esta rodando ou nao esta acessivel
-    echo Execute: docker-compose up -d
+    echo Execute: docker-compose -f docker-compose.local.yml up -d
     exit /b 1
 )
 

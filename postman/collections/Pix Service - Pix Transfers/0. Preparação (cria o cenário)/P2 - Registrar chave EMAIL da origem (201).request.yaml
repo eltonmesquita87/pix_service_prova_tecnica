@@ -1,0 +1,21 @@
+$kind: http-request
+description: Chave da origem. Usada no teste de transferência para a mesma carteira (T5).
+url: "{{baseUrl}}/wallets/{{origemWalletId}}/pix-keys"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "keyType": "EMAIL",
+      "keyValue": "{{chavePixOrigem}}"
+    }
+scripts:
+  - type: beforeRequest
+    code: pm.environment.set('chavePixOrigem', 'origem.' + Date.now() + '@example.com');
+    language: text/javascript
+  - type: afterResponse
+    code: pm.test('HTTP 201', function () { pm.response.to.have.status(201); });
+    language: text/javascript
+order: 2000

@@ -1,0 +1,4 @@
+$kind: collection
+name: 2. Webhook (POST /pix/webhook)
+description: "Confirmação e rejeição de transferências. Eventos são idempotentes por eventId. Saldos esperados: origem 500 → 350, destino 0 → 150."
+order: 3000

@@ -31,7 +31,7 @@ cd "$PROJECT_DIR"
 # Verificar se PostgreSQL está rodando
 if ! docker exec pix-postgres pg_isready -U pixuser -d pixdb > /dev/null 2>&1; then
     echo -e "${RED}[ERRO] PostgreSQL não está rodando ou não está acessível${NC}"
-    echo "Execute: docker-compose up -d"
+    echo "Execute: docker-compose -f docker-compose.local.yml up -d"
     exit 1
 fi
 

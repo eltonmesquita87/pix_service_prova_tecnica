@@ -1,0 +1,20 @@
+$kind: http-request
+description: Carteira sem titular. Define origemWalletId.
+url: "{{baseUrl}}/wallets"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "userId": "origem-{{$randomUUID}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 201', function () { pm.response.to.have.status(201); });
+      var json = pm.response.json();
+      pm.environment.set('origemWalletId', String(json.id));
+    language: text/javascript
+order: 1000

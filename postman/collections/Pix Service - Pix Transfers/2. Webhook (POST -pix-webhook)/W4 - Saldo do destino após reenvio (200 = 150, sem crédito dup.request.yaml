@@ -1,0 +1,12 @@
+$kind: http-request
+name: W4 - Saldo do destino após reenvio (200 = 150, sem crédito duplicado)
+url: "{{baseUrl}}/wallets/{{destinoWalletId}}/balance"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 200', function () { pm.response.to.have.status(200); });
+      var json = pm.response.json();
+      pm.test('Sem crédito duplicado', function () { pm.expect(json.balance).to.eql(150); });
+    language: text/javascript
+order: 4000

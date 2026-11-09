@@ -568,7 +568,7 @@ Locks: [WalletJpaRepository.java#L16-L18](../../src/main/java/com/elton/pixservi
 
 ```mermaid
 flowchart LR
-    U[Cliente] -->|":8080"| NG["NGINX<br/>round-robin, retry 2x"]
+    U[Cliente] -->|":8090 (host)"| NG["NGINX<br/>round-robin, retry 2x"]
     NG -->|":8080"| R1["pix-service réplica 1"]
     NG -->|":8080"| R2["pix-service réplica 2"]
     NG -->|":8081 actuator"| R1 & R2
@@ -632,7 +632,7 @@ Observações:
 | AC-08 | Possível deadlock em transferências cruzadas, com resposta 500. | HIPÓTESE | Média | §8.2 |
 | AC-09 | A idempotência responde 409 em vez de reproduzir a resposta original, ao contrário do que diz o README. | FATO | Média | [TransferPixUseCase.java#L42](../../src/main/java/com/elton/pixservice/usecase/TransferPixUseCase.java#L42), [README.md#L533](../../README.md#L533) |
 | AC-10 | Códigos HTTP inconsistentes: depósito em carteira inexistente gera 400; chave inexistente gera 404, embora o Swagger e o README digam 400; webhook com transferência inexistente gera 400, embora o Swagger diga 404. | FATO | Média | [DepositUseCase.java#L27](../../src/main/java/com/elton/pixservice/usecase/DepositUseCase.java#L27), [TransferPixUseCase.java#L48](../../src/main/java/com/elton/pixservice/usecase/TransferPixUseCase.java#L48), [PixControllerApi.java#L33](../../src/main/java/com/elton/pixservice/infrastructure/web/controller/api/PixControllerApi.java#L33), [README.md#L700](../../README.md#L700) |
-| AC-11 | Porta divergente: a aplicação usa 8089, mas o README e o Swagger dizem 8080. O README cita `docker-compose up -d` sem existir `docker-compose.yml` e referencia 5 documentos ausentes. | FATO | Baixa | [application.yml#L42](../../src/main/resources/application.yml#L42), [README.md#L119](../../README.md#L119), [README.md#L138](../../README.md#L138) |
+| AC-11 | Porta sem indicação de cenário: 8089 na execução local, 8080 dentro do container e 8090 atrás do NGINX distribuído. README e javadoc do Swagger citam 8090 sem dizer o cenário, e o README usa 8090 também na execução local (linha 138). Métricas e Prometheus são citados na porta 8090, mas o NGINX só roteia `/actuator/health` nela; a porta correta é 8091. O README cita `docker-compose up -d` sem existir `docker-compose.yml`, e referencia 4 arquivos `.md` ausentes. | FATO | Baixa | [application.yml#L42](../../src/main/resources/application.yml#L42), [README.md#L119](../../README.md#L119), [README.md#L138](../../README.md#L138), [docker-compose.distributed.yml#L188](../../docker-compose.distributed.yml#L188), [nginx.conf#L129](../../nginx/nginx.conf#L129) |
 | AC-12 | O CI usa `./mvnw`, que não existe. | FATO | Alta | [ci.yml#L35](../../.github/workflows/ci.yml#L35) |
 | AC-13 | O ledger é imutável só por convenção; o estorno é tipado como `DEPOSIT`. | FATO | Média | §3, RN-21 |
 | AC-14 | Chave Pix sem normalização e sem validação de dígito verificador do CPF. | FATO | Média | [PixKey.java#L49-L54](../../src/main/java/com/elton/pixservice/domain/entity/PixKey.java#L49-L54) |

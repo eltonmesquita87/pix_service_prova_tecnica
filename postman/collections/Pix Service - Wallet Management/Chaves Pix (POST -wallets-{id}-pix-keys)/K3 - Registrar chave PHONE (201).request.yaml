@@ -1,0 +1,24 @@
+$kind: http-request
+description: Para PHONE como chave Pix, PixKey.validate conta 10 a 11 dígitos após remover não dígitos. Não aceita o formato +55 do titular (E.164, 13 dígitos).
+url: "{{baseUrl}}/wallets/{{walletId}}/pix-keys"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "keyType": "PHONE",
+      "keyValue": "{{chavePixPhone}}"
+    }
+scripts:
+  - type: beforeRequest
+    code: pm.environment.set('chavePixPhone', '11' + String(Date.now()).slice(-9));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 201', function () { pm.response.to.have.status(201); });
+      var json = pm.response.json();
+      pm.test('Tipo PHONE', function () { pm.expect(json.keyType).to.eql('PHONE'); });
+    language: text/javascript
+order: 3000

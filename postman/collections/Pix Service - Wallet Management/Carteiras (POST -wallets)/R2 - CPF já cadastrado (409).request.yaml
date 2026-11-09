@@ -1,0 +1,27 @@
+$kind: http-request
+description: Reutiliza o CPF de R1. Swagger documenta 409 "CPF já cadastrado",
+  igual ao código (CreateWalletUseCase).
+url: "{{baseUrl}}/wallets"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "userId": "duplicado-{{$randomUUID}}",
+      "cpf": "{{cpfTitular}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 409', function () { pm.response.to.have.status(409); });
+      var json = pm.response.json();
+      pm.test('Envelope ErrorResponse', function () {
+        pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);
+        pm.expect(json.status).to.eql(409);
+        pm.expect(json.error).to.eql("Conflict");
+        pm.expect(json.message).to.eql("CPF already registered");
+      });
+    language: text/javascript
+order: 3000

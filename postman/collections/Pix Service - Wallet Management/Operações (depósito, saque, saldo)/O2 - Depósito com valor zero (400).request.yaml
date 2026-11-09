@@ -1,0 +1,25 @@
+$kind: http-request
+description: DecimalMin 0.01.
+url: "{{baseUrl}}/wallets/{{walletId}}/deposit"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "amount": 0
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 400', function () { pm.response.to.have.status(400); });
+      var json = pm.response.json();
+      pm.test('Envelope ErrorResponse', function () {
+        pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);
+        pm.expect(json.status).to.eql(400);
+        pm.expect(json.error).to.eql("Validation Failed");
+        pm.expect(json.message).to.eql("Amount must be greater than zero");
+      });
+    language: text/javascript
+order: 2000

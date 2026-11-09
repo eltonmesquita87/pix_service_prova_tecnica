@@ -5,10 +5,10 @@ Sistema de carteira digital com suporte completo a operações Pix, desenvolvido
 [![Performance](https://img.shields.io/badge/Performance-99.76%25%20Success-success)](./PERFORMANCE_RESULTS.md)
 [![Throughput](https://img.shields.io/badge/Throughput-44%20req%2Fs-blue)](./PERFORMANCE_RESULTS.md)
 [![P95](https://img.shields.io/badge/P95-84ms-green)](./PERFORMANCE_RESULTS.md)
-[![Scalability](https://img.shields.io/badge/Scalability-High--Concurrency-success)](./DATABASE_PARTITIONING_ANALYSIS.md)
-[![Docker](https://img.shields.io/badge/Docker-Production--Ready-blue)](./DOCKER.md)
-[![Load Balancer](https://img.shields.io/badge/Load%20Balancer-NGINX%20-orange)](./LOAD_BALANCING.md)
-[![Distributed](https://img.shields.io/badge/Architecture-Distributed-success)](./LOAD_BALANCING.md)
+[![Scalability](https://img.shields.io/badge/Scalability-High--Concurrency-success)](./scripts/README_PARTITIONING.md)
+[![Docker](https://img.shields.io/badge/Docker-Production--Ready-blue)](#docker-em-produção)
+[![Load Balancer](https://img.shields.io/badge/Load%20Balancer-NGINX%20-orange)](#docker-em-produção)
+[![Distributed](https://img.shields.io/badge/Architecture-Distributed-success)](#docker-em-produção)
 
 ---
 
@@ -113,10 +113,18 @@ O diagrama acima ilustra a arquitetura completa do sistema, incluindo:
 
 ## Como Executar
 
+### Portas por cenário
+
+| Cenário | Como sobe | Endereço |
+|---|---|---|
+| Execução local (JVM) | `./mvnw spring-boot:run` | `http://localhost:8089` (definida em `application.yml`) |
+| Container isolado | `docker run -p 8080:8080 ...` (exemplo no `Dockerfile`) | `http://localhost:8080` (porta interna, `SERVER_PORT=8080`) |
+| Distribuído (NGINX) | `docker-compose -f docker-compose.distributed.yml up -d` | `http://localhost:8090` (NGINX publica `8090:80`; métricas agregadas em `8091`) |
+
 ### 1. Iniciar o Banco de Dados
 
 ```bash
-docker-compose up -d
+docker-compose -f docker-compose.local.yml up -d
 ```
 
 Isso iniciará:
@@ -135,7 +143,7 @@ mvn clean install
 mvn spring-boot:run
 ```
 
-A aplicação estará disponível em: `http://localhost:8090`
+A aplicação estará disponível em: `http://localhost:8089`
 
 ---
 
@@ -391,7 +399,8 @@ A API possui documentação interativa completa usando **Swagger/OpenAPI**:
 
 ### Swagger UI (Documentação Interativa)
 ```
-http://localhost:8090/swagger-ui/
+Execução local:      http://localhost:8089/swagger-ui/
+Distribuído (NGINX): http://localhost:8090/swagger-ui/
 ```
 
 Interface visual onde você pode:
@@ -402,7 +411,8 @@ Interface visual onde você pode:
 
 ### OpenAPI JSON (Especificação)
 ```
-http://localhost:8090/v2/api-docs
+Execução local:      http://localhost:8089/v2/api-docs
+Distribuído (NGINX): http://localhost:8090/v2/api-docs
 ```
 
 Especificação OpenAPI em formato JSON para:
@@ -607,9 +617,11 @@ Estados terminais: CONFIRMED e REJECTED não permitem transições.
 
 ### Actuator Endpoints
 
+No cenário distribuído, o health passa pela porta do NGINX (`8090`). Métricas e Prometheus não são roteadas na porta 80 do NGINX; use a porta de actuator agregada (`8091`).
+
 - Health: `http://localhost:8090/actuator/health`
-- Metrics: `http://localhost:8090/actuator/metrics`
-- Prometheus: `http://localhost:8090/actuator/prometheus`
+- Metrics: `http://localhost:8091/actuator/metrics`
+- Prometheus: `http://localhost:8091/actuator/prometheus`
 
 ## Cenários de Concorrência Tratados
 

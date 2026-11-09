@@ -1,0 +1,46 @@
+$kind: http-request
+description: WalletHolder.normalizeNome faz trim; normalizeEmail faz trim e
+  toLowerCase(Locale.ROOT).
+url: "{{baseUrl}}/wallets"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "userId": "normaliza-{{$randomUUID}}",
+      "cpf": "{{cpfTitular}}",
+      "nome": "   Maria Silva   ",
+      "email": "  Maria.Silva@EXAMPLE.com  "
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      function gerarCpf() {
+        var d = [];
+        for (var i = 0; i < 9; i++) { d.push(Math.floor(Math.random() * 10)); }
+        var iguais = d.every(function (x) { return x === d[0]; });
+        if (iguais) { d[8] = (d[8] + 1) % 10; }
+        var dv = function (base) {
+          var soma = 0;
+          for (var k = 0; k < base.length; k++) { soma += base[k] * (base.length + 1 - k); }
+          var r = soma % 11;
+          return r < 2 ? 0 : 11 - r;
+        };
+        var d1 = dv(d);
+        var d2 = dv(d.concat([d1]));
+        return d.concat([d1, d2]).join("");
+      }
+      pm.environment.set('cpfTitular', gerarCpf());
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 201', function () { pm.response.to.have.status(201); });
+      var json = pm.response.json();
+      pm.test('Nome e e-mail normalizados', function () {
+        pm.expect(json.nome).to.eql('Maria Silva');
+        pm.expect(json.email).to.eql('maria.silva@example.com');
+      });
+    language: text/javascript
+order: 5000

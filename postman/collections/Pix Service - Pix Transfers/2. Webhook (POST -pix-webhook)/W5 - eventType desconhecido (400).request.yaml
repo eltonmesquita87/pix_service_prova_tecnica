@@ -1,0 +1,28 @@
+$kind: http-request
+description: Só CONFIRMED e REJECTED são aceitos. Essa checagem ocorre depois de encontrar a transferência.
+url: "{{baseUrl}}/pix/webhook"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "endToEndId": "{{endToEndId}}",
+      "eventId": "evt-tipo-{{$guid}}",
+      "eventType": "PENDING",
+      "occurredAt": "2026-11-09T10:30:00"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 400', function () { pm.response.to.have.status(400); });
+      var json = pm.response.json();
+      pm.test('Envelope ErrorResponse', function () {
+        pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);
+        pm.expect(json.status).to.eql(400);
+        pm.expect(json.error).to.eql("Bad Request");
+        pm.expect(json.message).to.eql("Unknown event type: PENDING");
+      });
+    language: text/javascript
+order: 5000

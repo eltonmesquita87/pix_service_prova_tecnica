@@ -39,8 +39,8 @@ echo "--------------------------------------------------------------------------
 
 cd "$PROJECT_DIR"
 
-docker-compose down > /dev/null 2>&1 || true
-docker-compose up -d
+docker-compose -f docker-compose.local.yml down > /dev/null 2>&1 || true
+docker-compose -f docker-compose.local.yml up -d
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}[ERRO] Falha ao iniciar Docker Compose${NC}"

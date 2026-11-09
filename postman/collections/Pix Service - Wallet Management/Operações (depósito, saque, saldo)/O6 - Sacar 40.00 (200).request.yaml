@@ -1,0 +1,20 @@
+$kind: http-request
+description: Debita o saldo e grava lançamento WITHDRAW.
+url: "{{baseUrl}}/wallets/{{walletId}}/withdraw"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "amount": 40.00
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 200', function () { pm.response.to.have.status(200); });
+      var json = pm.response.json();
+      pm.test('Saldo após saque = 60', function () { pm.expect(json.balance).to.eql(60); });
+    language: text/javascript
+order: 6000

@@ -1,0 +1,4 @@
+$kind: collection
+name: 1. Transferências (POST /pix/transfers)
+description: Cabeçalho Idempotency-Key obrigatório. Cada requisição gera uma chave nova, exceto T2, que reenvia a chave de T1.
+order: 2000

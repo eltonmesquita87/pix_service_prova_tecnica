@@ -1,0 +1,30 @@
+$kind: http-request
+url: "{{baseUrl}}/pix/transfers"
+method: POST
+headers:
+  Content-Type: application/json
+  Idempotency-Key: "{{idemKey}}"
+body:
+  type: json
+  content: |-
+    {
+      "fromWalletId": {{origemWalletId}},
+      "pixKey": "{{chavePixDestino}}",
+      "amount": 0
+    }
+scripts:
+  - type: beforeRequest
+    code: pm.environment.set('idemKey', 'idem-' + Date.now() + '-' + Math.floor(Math.random() * 1000000));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 400', function () { pm.response.to.have.status(400); });
+      var json = pm.response.json();
+      pm.test('Envelope ErrorResponse', function () {
+        pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);
+        pm.expect(json.status).to.eql(400);
+        pm.expect(json.error).to.eql("Validation Failed");
+        pm.expect(json.message).to.eql("Amount must be greater than zero");
+      });
+    language: text/javascript
+order: 8000

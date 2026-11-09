@@ -1,0 +1,29 @@
+$kind: http-request
+description: Chave EMAIL única por execução. A chave não é normalizada.
+url: "{{baseUrl}}/wallets/{{walletId}}/pix-keys"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "keyType": "EMAIL",
+      "keyValue": "{{chavePixEmail}}"
+    }
+scripts:
+  - type: beforeRequest
+    code: pm.environment.set('chavePixEmail', 'pix.' + Date.now() + '@example.com');
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 201', function () { pm.response.to.have.status(201); });
+      var json = pm.response.json();
+      pm.test('PixKeyResponse', function () {
+        pm.expect(json.id).to.be.a("number");
+        pm.expect(json.walletId).to.eql(Number(pm.environment.get('walletId')));
+        pm.expect(json.keyType).to.eql('EMAIL');
+        pm.expect(json.keyValue).to.eql(pm.environment.get('chavePixEmail'));
+      });
+    language: text/javascript
+order: 1000

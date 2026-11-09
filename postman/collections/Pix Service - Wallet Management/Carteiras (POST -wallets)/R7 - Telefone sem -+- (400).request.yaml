@@ -1,0 +1,28 @@
+$kind: http-request
+name: R7 - Telefone sem "+" (400)
+description: 'Telefone precisa estar em E.164: "+" seguido de 8 a 15 dígitos,
+  primeiro diferente de 0.'
+url: "{{baseUrl}}/wallets"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "userId": "tel-invalido-{{$randomUUID}}",
+      "telefone": "11999999999"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 400', function () { pm.response.to.have.status(400); });
+      var json = pm.response.json();
+      pm.test('Envelope ErrorResponse', function () {
+        pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);
+        pm.expect(json.status).to.eql(400);
+        pm.expect(json.error).to.eql("Bad Request");
+        pm.expect(json.message).to.eql("Invalid phone");
+      });
+    language: text/javascript
+order: 8000

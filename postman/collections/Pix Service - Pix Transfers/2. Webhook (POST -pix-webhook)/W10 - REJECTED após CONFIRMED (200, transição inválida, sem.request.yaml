@@ -1,0 +1,21 @@
+$kind: http-request
+name: W10 - REJECTED após CONFIRMED (200, transição inválida, sem efeito)
+description: "Divergência: o Swagger documenta 400. O código devolve 200 e ignora a transição inválida (ProcessWebhookUseCase). O evento fica registrado como processado."
+url: "{{baseUrl}}/pix/webhook"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "endToEndId": "{{endToEndId}}",
+      "eventId": "evt-rej-conf-{{$guid}}",
+      "eventType": "REJECTED",
+      "occurredAt": "2026-11-09T10:30:00"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('HTTP 200', function () { pm.response.to.have.status(200); });
+    language: text/javascript
+order: 10000

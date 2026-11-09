@@ -10,7 +10,7 @@ echo
 echo "Verificando container PostgreSQL..."
 if ! docker ps --filter "name=pix-postgres" --format "{{.Names}}" | grep -q "pix-postgres"; then
     echo "ERRO: Container PostgreSQL não está rodando!"
-    echo "Execute: docker-compose up -d"
+    echo "Execute: docker-compose -f docker-compose.local.yml up -d"
     exit 1
 fi
 

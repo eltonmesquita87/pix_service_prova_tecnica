@@ -1,0 +1,32 @@
+name: Pix Service - Local
+values:
+  - key: baseUrl
+    value: 'http://localhost:8089'
+  - key: walletId
+    value: ''
+  - key: cpfTitular
+    value: ''
+  - key: chavePixEmail
+    value: ''
+  - key: chavePixCpf
+    value: ''
+  - key: chavePixPhone
+    value: ''
+  - key: origemWalletId
+    value: ''
+  - key: destinoWalletId
+    value: ''
+  - key: chavePixOrigem
+    value: ''
+  - key: chavePixDestino
+    value: ''
+  - key: idemKey
+    value: ''
+  - key: idemKeyA
+    value: ''
+  - key: endToEndId
+    value: ''
+  - key: endToEndIdB
+    value: ''
+  - key: eventIdA
+    value: ''

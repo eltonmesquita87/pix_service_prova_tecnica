@@ -27,8 +27,8 @@ echo ---------------------------------------------------------------------------
 
 cd /d "%~dp0.."
 
-docker-compose down >nul 2>&1
-docker-compose up -d
+docker-compose -f docker-compose.local.yml down >nul 2>&1
+docker-compose -f docker-compose.local.yml up -d
 
 if %ERRORLEVEL% neq 0 (
     echo [ERRO] Falha ao iniciar Docker Compose

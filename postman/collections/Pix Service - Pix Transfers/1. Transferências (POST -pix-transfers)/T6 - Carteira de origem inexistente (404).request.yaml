@@ -1,0 +1,30 @@
+$kind: http-request
+url: "{{baseUrl}}/pix/transfers"
+method: POST
+headers:
+  Content-Type: application/json
+  Idempotency-Key: "{{idemKey}}"
+body:
+  type: json
+  content: |-
+    {
+      "fromWalletId": 999999999,
+      "pixKey": "{{chavePixDestino}}",
+      "amount": 10.00
+    }
+scripts:
+  - type: beforeRequest
+    code: pm.environment.set('idemKey', 'idem-' + Date.now() + '-' + Math.floor(Math.random() * 1000000));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('HTTP 404', function () { pm.response.to.have.status(404); });
+      var json = pm.response.json();
+      pm.test('Envelope ErrorResponse', function () {
+        pm.expect(json).to.include.keys(['timestamp', 'status', 'error', 'message', 'path']);
+        pm.expect(json.status).to.eql(404);
+        pm.expect(json.error).to.eql("Not Found");
+        pm.expect(json.message).to.eql("Source wallet not found: 999999999");
+      });
+    language: text/javascript
+order: 6000
